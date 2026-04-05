@@ -883,6 +883,65 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
+  // Phase 10: ExternalFile Integration
+  // -------------------------------------------------------------------------
+
+  group('Phase 10: ExternalFile integration', () {
+    test('10.1: full model with mixed regular fields and ExternalFile matches hand-written descriptor format',
+        () async {
+      final cls = await _resolveClass(
+        '''
+        import 'package:dartdata/src/annotations/model.dart';
+        import 'package:dartdata/src/storage/external_file.dart';
+
+        @model
+        class Photo {
+          @attribute(primaryKey: true)
+          final String id;
+          String title;
+          ExternalFile? imageData;
+
+          Photo({required this.id, required this.title, this.imageData});
+        }
+        ''',
+        'Photo',
+      );
+
+      final output = _generate(cls);
+
+      // --- Columns ---
+      // id: primary key TEXT
+      expect(output, contains(RegExp(r"columnName: 'id'.*isPrimaryKey: true")));
+      // title: regular TEXT
+      expect(output, contains("columnName: 'title'"));
+      // image_data: TEXT (ExternalFile stores UUID string)
+      expect(output, contains(RegExp(r"columnName: 'image_data'.*type: ColumnType\.text.*isNullable: true")));
+
+      // --- externalFileFields ---
+      expect(output, contains(RegExp(r"externalFileFields\s*=>\s*\[\s*'image_data'")));
+
+      // --- QueryField statics ---
+      // title gets a QueryField, imageData does NOT
+      expect(output, contains("QueryField<String>('title')"));
+      expect(output, isNot(contains("QueryField<String>('image_data')")));
+
+      // --- toMap ---
+      expect(output, contains("'id': id"));
+      expect(output, contains("'title': title"));
+      expect(output, contains(RegExp(r"'image_data':\s*null")));
+
+      // --- fromMap ---
+      expect(output, contains("id: row['id'] as String"));
+      expect(output, contains("title: row['title'] as String"));
+      expect(output, contains("ExternalFile.fromManagedPath"));
+      expect(output, contains(RegExp(r"row\['image_data'\]\s*!=\s*null")));
+
+      // --- No relationships ---
+      expect(output, contains("get relationships => ["));
+    });
+  });
+
+  // -------------------------------------------------------------------------
   // Phase 7: Integration — Mixed Relationship Types
   // -------------------------------------------------------------------------
 
