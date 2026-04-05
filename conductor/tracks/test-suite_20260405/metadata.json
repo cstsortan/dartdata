@@ -2,15 +2,26 @@
   "id": "test-suite_20260405",
   "title": "Full Validation Test Suite",
   "type": "feature",
-  "status": "pending",
+  "status": "complete",
   "created": "2026-04-05T00:00:00.000Z",
   "updated": "2026-04-05T00:00:00.000Z",
+  "current_phase": 6,
+  "current_task": "6.5",
   "phases": {
     "total": 6,
-    "completed": 0
+    "completed": 6
   },
   "tasks": {
     "total": 29,
-    "completed": 0
-  }
+    "completed": 29
+  },
+  "commits": [
+    "6f02192: fix: resolve compilation errors in source and test files",
+    "5b63074: test(query): add QueryField, Predicate, SortDescriptor, and Query unit tests",
+    "af5fa53: test(storage): add ExternalFile state machine unit tests",
+    "c648d1d: test(container): rewrite ModelContainer tests covering schema and pragmas",
+    "84f0b0f: test(context): rewrite ModelContext CRUD integration tests",
+    "ab3eedd: test(relationship): add relationship models and FK/delete-rule tests",
+    "7fdbfb3: test(storage): add ExternalFile persistence integration tests"
+  ]
 }
