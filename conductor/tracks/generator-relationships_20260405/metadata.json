@@ -2,18 +2,23 @@
   "id": "generator-relationships_20260405",
   "title": "Generator — Relationship Emission",
   "type": "feature",
-  "status": "pending",
+  "status": "complete",
   "created": "2026-04-05T00:00:00.000Z",
   "updated": "2026-04-05T00:00:00.000Z",
-  "current_phase": 0,
+  "current_phase": 4,
   "current_task": null,
   "phases": {
     "total": 4,
-    "completed": 0
+    "completed": 4
   },
   "tasks": {
     "total": 16,
-    "completed": 0
+    "completed": 16
   },
-  "commits": []
+  "commits": [
+    "13ce53a: feat(generator): detect @relationship and emit to-one FK columns",
+    "75b5f43: test(generator): add to-many relationship and inverse wiring tests",
+    "724318a: feat(generator): emit junction tables for many-to-many relationships",
+    "e5a01b0: test(generator): add integration tests for mixed relationship types"
+  ]
 }
