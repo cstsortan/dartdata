@@ -16,6 +16,8 @@ Navigation hub for project context.
 
 - [example-package_20260405 — dartdata_example Integration Package](./tracks/example-package_20260405/index.md) — Pending
 
+- [zpk-integer-fk_20260405 — z_pk Integer Foreign Key Resolution](./tracks/zpk-integer-fk_20260405/index.md) — Pending
+
 <!-- Auto-populated by /conductor:new-track -->
 
 ## Getting Started

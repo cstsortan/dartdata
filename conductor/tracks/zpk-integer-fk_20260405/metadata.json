@@ -1,0 +1,16 @@
+{
+  "id": "zpk-integer-fk_20260405",
+  "title": "z_pk Integer Foreign Key Resolution",
+  "type": "refactor",
+  "status": "pending",
+  "created": "2026-04-05T00:00:00Z",
+  "updated": "2026-04-05T00:00:00Z",
+  "phases": {
+    "total": 6,
+    "completed": 0
+  },
+  "tasks": {
+    "total": 40,
+    "completed": 0
+  }
+}

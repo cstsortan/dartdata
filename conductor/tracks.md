@@ -27,4 +27,7 @@
 | | | **Tier 5 — Integration Testing** | | |
 | [~] | example-package_20260405 | dartdata_example Integration Package | 2026-04-05 | 2026-04-05 |
 
+| | | **Tier 6 — Schema Correctness** | | |
+| [ ] | zpk-integer-fk_20260405 | z_pk Integer Foreign Key Resolution | 2026-04-05 | 2026-04-05 |
+
 <!-- Tracks registered by /conductor:new-track -->
