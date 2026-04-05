@@ -52,14 +52,16 @@ class ModelContext {
   Future<void> save() async {
     if (_pending.isEmpty) return;
 
-    // Enforce delete rules before opening the transaction.
-    // This may throw (deny), append cascade deletes, or queue nullify SQL.
-    final preDeleteSql = _enforceDeleteRules();
-
     final db = container.db;
     db.execute('BEGIN');
 
     try {
+      // Enforce delete rules inside the transaction so that:
+      // 1. Deny throws are caught, triggering ROLLBACK and leaving _pending
+      //    intact for retry or manual rollback().
+      // 2. Cascade SELECTs and deny COUNTs read a consistent snapshot.
+      final preDeleteSql = _enforceDeleteRules();
+
       // Execute any nullify UPDATEs queued by delete rule enforcement.
       for (final sql in preDeleteSql) {
         db.execute(sql.statement, sql.arguments);
