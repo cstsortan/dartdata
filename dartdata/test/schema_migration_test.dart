@@ -161,6 +161,42 @@ void main() {
 
       containerV1.close();
     });
+
+    // Constraint preservation: NOT NULL + UNIQUE on migrated column
+    test('adds new column with NOT NULL and UNIQUE constraints', () async {
+      final containerV1 = await ModelContainer.create(
+        schema: Schema([TripDescriptor()]),
+        configuration: const ModelConfiguration.inMemory(),
+      );
+
+      // Migrate to V3 which adds a NOT NULL UNIQUE 'tag' column
+      final schemaV3 = Schema([TripV3Descriptor()]);
+      await ModelContainer.createFromDatabase(
+        schema: schemaV3,
+        db: containerV1.db,
+        configuration: const ModelConfiguration.inMemory(),
+      );
+
+      // Verify the column has NOT NULL and UNIQUE constraints via PRAGMA
+      final cols = containerV1.db.select("PRAGMA table_info(trip)");
+      final tagCol = cols.firstWhere((c) => c['name'] == 'tag');
+      expect(tagCol['notnull'], equals(1));
+
+      // Verify UNIQUE by inserting two rows with the same tag — should fail
+      containerV1.db.execute(
+        "INSERT INTO trip (id, name, destination, start_date, end_date, tag) "
+        "VALUES ('t1', 'A', 'X', 0, 0, 'solo')",
+      );
+      expect(
+        () => containerV1.db.execute(
+          "INSERT INTO trip (id, name, destination, start_date, end_date, tag) "
+          "VALUES ('t2', 'B', 'Y', 0, 0, 'solo')",
+        ),
+        throwsA(anything),
+      );
+
+      containerV1.close();
+    });
   });
 
   // ===========================================================================
@@ -176,7 +212,7 @@ void main() {
       );
 
       final schemaV2 = Schema([TripV2Descriptor()]);
-      expect(
+      await expectLater(
         () => ModelContainer.createFromDatabase(
           schema: schemaV2,
           db: containerV1.db,

@@ -244,12 +244,30 @@ class ModelContainer {
           .toSet();
 
       // Add missing columns (additive only — never drop).
+      // SQLite ALTER TABLE ADD COLUMN does not support UNIQUE inline,
+      // so uniqueness is enforced via a separate CREATE UNIQUE INDEX.
       for (final col in descriptor.columns) {
         if (!existingCols.contains(col.columnName)) {
-          final sqlType = _sqlType(col.type);
+          final parts = <String>[col.columnName, _sqlType(col.type)];
+
+          final needsNotNull = col.isPrimaryKey || !col.isNullable;
+          if (needsNotNull) {
+            parts.add('NOT NULL');
+            parts.add('DEFAULT ${_sqlDefault(col.type)}');
+          }
+
           db.execute(
-            "ALTER TABLE ${descriptor.tableName} ADD COLUMN ${col.columnName} $sqlType",
+            "ALTER TABLE ${descriptor.tableName} ADD COLUMN ${parts.join(' ')}",
           );
+
+          // Enforce UNIQUE via index (isPrimaryKey implies UNIQUE NOT NULL).
+          if (col.isPrimaryKey || col.isUnique) {
+            db.execute(
+              "CREATE UNIQUE INDEX IF NOT EXISTS "
+              "idx_${descriptor.tableName}_${col.columnName}_unique "
+              "ON ${descriptor.tableName} (${col.columnName})",
+            );
+          }
         }
       }
     }
@@ -316,6 +334,17 @@ class ModelContainer {
         ColumnType.integer => 'INTEGER',
         ColumnType.real => 'REAL',
         ColumnType.blob => 'BLOB',
+      };
+
+  /// Returns a sensible SQL default literal for [type].
+  ///
+  /// Used when adding a NOT NULL column via ALTER TABLE to a table that may
+  /// already contain rows (SQLite requires a default in that case).
+  String _sqlDefault(ColumnType type) => switch (type) {
+        ColumnType.text => "''",
+        ColumnType.integer => '0',
+        ColumnType.real => '0.0',
+        ColumnType.blob => "x''",
       };
 
   /// Remove blob files that have no corresponding row in the database.
