@@ -104,7 +104,7 @@ ${fields.map((f) => "      ${f.name}: ${f.fromMapExpression('row')},").join('\n'
     final m = model as $className;
     return {
 ${fields.map((f) => "      '${f.columnName}': ${f.toMapExpressionFor('m')},").join('\n')}
-${relationships.where((r) => r.cardinality == RelationshipCardinality.toOne).map((r) => "      '${r.fkColumnName}': null, // FK populated by ModelContext during save").join('\n')}
+${relationships.where((r) => r.cardinality == RelationshipCardinality.toOne).map((r) => "      '${r.fkColumnName}': m.${r.fieldName}${r.isNullable ? '?' : ''}.id,").join('\n')}
     };
   }
 ${_generateGetExternalFile(className, fields)}
@@ -391,7 +391,7 @@ class _RelationshipInfo {
 
   /// Generates a `ColumnDefinition(...)` string for the FK column.
   String get fkColumnDefinition {
-    return "ColumnDefinition(columnName: '$fkColumnName', type: ColumnType.integer, "
+    return "ColumnDefinition(columnName: '$fkColumnName', type: ColumnType.text, "
         "isPrimaryKey: false, isUnique: false, isIndexed: false, "
         "isNullable: $isNullable)";
   }

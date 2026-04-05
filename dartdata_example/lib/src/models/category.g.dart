@@ -49,7 +49,7 @@ class _CategoryDescriptor extends ModelDescriptor {
             isNullable: false),
         ColumnDefinition(
             columnName: 'post_id',
-            type: ColumnType.integer,
+            type: ColumnType.text,
             isPrimaryKey: false,
             isUnique: false,
             isIndexed: false,
@@ -85,7 +85,7 @@ class _CategoryDescriptor extends ModelDescriptor {
     return {
       'id': m.id,
       'name': m.name,
-      'post_id': null, // FK populated by ModelContext during save
+      'post_id': m.post?.id,
     };
   }
 }

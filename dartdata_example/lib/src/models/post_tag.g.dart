@@ -50,14 +50,14 @@ class _PostTagDescriptor extends ModelDescriptor {
             isNullable: true),
         ColumnDefinition(
             columnName: 'post_id',
-            type: ColumnType.integer,
+            type: ColumnType.text,
             isPrimaryKey: false,
             isUnique: false,
             isIndexed: false,
             isNullable: true),
         ColumnDefinition(
             columnName: 'tag_id',
-            type: ColumnType.integer,
+            type: ColumnType.text,
             isPrimaryKey: false,
             isUnique: false,
             isIndexed: false,
@@ -104,8 +104,8 @@ class _PostTagDescriptor extends ModelDescriptor {
     return {
       'id': m.id,
       'pinned_at': m.pinnedAt?.toUtc().millisecondsSinceEpoch,
-      'post_id': null, // FK populated by ModelContext during save
-      'tag_id': null, // FK populated by ModelContext during save
+      'post_id': m.post?.id,
+      'tag_id': m.tag?.id,
     };
   }
 }

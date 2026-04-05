@@ -57,7 +57,7 @@ class _AttachmentDescriptor extends ModelDescriptor {
             isNullable: true),
         ColumnDefinition(
             columnName: 'post_id',
-            type: ColumnType.integer,
+            type: ColumnType.text,
             isPrimaryKey: false,
             isUnique: false,
             isIndexed: false,
@@ -99,7 +99,7 @@ class _AttachmentDescriptor extends ModelDescriptor {
       'id': m.id,
       'filename': m.filename,
       'data': null,
-      'post_id': null, // FK populated by ModelContext during save
+      'post_id': m.post?.id,
     };
   }
 

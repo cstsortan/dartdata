@@ -49,29 +49,22 @@ void main() {
     test('Attachment data: stage bytes, save, fetch, verify', () async {
       final fileBytes = Uint8List.fromList([0x50, 0x4B, 0x03, 0x04]);
 
-      context.insert(Post(
+      final post = Post(
         id: 'p1',
         title: 'T',
         body: 'B',
         publishedAt: DateTime.utc(2026, 1, 1),
-      ));
+      );
+      context.insert(post);
       await context.save();
 
       context.insert(Attachment(
         id: 'att1',
         filename: 'doc.zip',
         data: ExternalFile.fromBytes(fileBytes),
+        post: post,
       ));
       await context.save();
-
-      // Link to post using z_pk integer FK
-      final postZpk = container.db.select(
-        "SELECT z_pk FROM post WHERE id = 'p1'",
-      ).first['z_pk'] as int;
-      container.db.execute(
-        'UPDATE attachment SET post_id = ? WHERE id = ?',
-        [postZpk, 'att1'],
-      );
 
       final att = (await context.fetchOne<Attachment>(id: 'att1'))!;
       expect(att.data, isNotNull);

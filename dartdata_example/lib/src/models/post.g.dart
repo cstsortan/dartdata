@@ -74,7 +74,7 @@ class _PostDescriptor extends ModelDescriptor {
             isNullable: false),
         ColumnDefinition(
             columnName: 'author_id',
-            type: ColumnType.integer,
+            type: ColumnType.text,
             isPrimaryKey: false,
             isUnique: false,
             isIndexed: false,
@@ -118,7 +118,7 @@ class _PostDescriptor extends ModelDescriptor {
       'body_text': m.body,
       'published_at': m.publishedAt.toUtc().millisecondsSinceEpoch,
       'is_draft': m.isDraft ? 1 : 0,
-      'author_id': null, // FK populated by ModelContext during save
+      'author_id': m.author?.id,
     };
   }
 }

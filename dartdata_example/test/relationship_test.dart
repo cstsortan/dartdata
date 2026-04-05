@@ -23,38 +23,26 @@ void main() {
 
   group('DeleteRule.cascade', () {
     test('deleting Post cascades to Comments', () async {
-      // Insert Post then Comments referencing it via FK
-      context.insert(Post(
+      final post = Post(
         id: 'p1',
         title: 'T',
         body: 'B',
         publishedAt: DateTime.utc(2026, 1, 1),
-      ));
+      );
+      context.insert(post);
       await context.save();
 
-      // Look up z_pk for the post (FK columns use integer z_pk references)
-      final postZpk = container.db.select(
-        "SELECT z_pk FROM post WHERE id = 'p1'",
-      ).first['z_pk'] as int;
-
-      // Insert comments with FK pointing to post z_pk
-      container.db.execute(
-        "INSERT INTO comment (id, text, created_at, post_id, z_opt) "
-        "VALUES ('c1', 'Nice!', 0, ?, 0)",
-        [postZpk],
-      );
-      container.db.execute(
-        "INSERT INTO comment (id, text, created_at, post_id, z_opt) "
-        "VALUES ('c2', 'Great!', 0, ?, 0)",
-        [postZpk],
-      );
+      // Insert comments with FK set via relationship object
+      context.insert(Comment(id: 'c1', text: 'Nice!', createdAt: DateTime.utc(2026), post: post));
+      context.insert(Comment(id: 'c2', text: 'Great!', createdAt: DateTime.utc(2026), post: post));
+      await context.save();
 
       // Verify comments exist
       expect(await context.fetchCount(Query<Comment>()), 2);
 
       // Delete the post — should cascade to comments
-      final post = (await context.fetchOne<Post>(id: 'p1'))!;
-      context.delete(post);
+      final fetched = (await context.fetchOne<Post>(id: 'p1'))!;
+      context.delete(fetched);
       await context.save();
 
       expect(await context.fetchCount(Query<Post>()), 0);
@@ -62,28 +50,22 @@ void main() {
     });
 
     test('deleting Post cascades to Attachments', () async {
-      context.insert(Post(
+      final post = Post(
         id: 'p1',
         title: 'T',
         body: 'B',
         publishedAt: DateTime.utc(2026, 1, 1),
-      ));
+      );
+      context.insert(post);
       await context.save();
 
-      final postZpk = container.db.select(
-        "SELECT z_pk FROM post WHERE id = 'p1'",
-      ).first['z_pk'] as int;
-
-      container.db.execute(
-        "INSERT INTO attachment (id, filename, post_id, z_opt) "
-        "VALUES ('at1', 'file.txt', ?, 0)",
-        [postZpk],
-      );
+      context.insert(Attachment(id: 'at1', filename: 'file.txt', post: post));
+      await context.save();
 
       expect(await context.fetchCount(Query<Attachment>()), 1);
 
-      final post = (await context.fetchOne<Post>(id: 'p1'))!;
-      context.delete(post);
+      final fetched = (await context.fetchOne<Post>(id: 'p1'))!;
+      context.delete(fetched);
       await context.save();
 
       expect(await context.fetchCount(Query<Post>()), 0);
@@ -97,38 +79,28 @@ void main() {
 
   group('DeleteRule.nullify', () {
     test('deleting Post nullifies category.post_id FK', () async {
-      // Insert a post
-      context.insert(Post(
+      final post = Post(
         id: 'p1',
         title: 'T',
         body: 'B',
         publishedAt: DateTime.utc(2026, 1, 1),
-      ));
-      await context.save();
-
-      final postZpk = container.db.select(
-        "SELECT z_pk FROM post WHERE id = 'p1'",
-      ).first['z_pk'] as int;
-
-      // Insert a category and link it to the post via FK
-      context.insert(Category(id: 'cat1', name: 'Tech'));
-      await context.save();
-
-      // Manually set the FK on category table using z_pk
-      container.db.execute(
-        'UPDATE category SET post_id = ? WHERE id = ?',
-        [postZpk, 'cat1'],
       );
+      context.insert(post);
+      await context.save();
 
-      // Verify FK is set
+      // Insert a category linked to the post via relationship
+      context.insert(Category(id: 'cat1', name: 'Tech', post: post));
+      await context.save();
+
+      // Verify FK is set to the post's UUID
       final before = container.db.select(
         "SELECT post_id FROM category WHERE id = 'cat1'",
       );
-      expect(before.first['post_id'], postZpk);
+      expect(before.first['post_id'], 'p1');
 
       // Delete the post — should nullify category.post_id
-      final post = (await context.fetchOne<Post>(id: 'p1'))!;
-      context.delete(post);
+      final fetched = (await context.fetchOne<Post>(id: 'p1'))!;
+      context.delete(fetched);
       await context.save();
 
       // Category still exists but FK is null
@@ -146,33 +118,26 @@ void main() {
 
   group('DeleteRule.nullify on Post→Author', () {
     test('deleting Author nullifies author_id on Posts', () async {
-      context.insert(Author(id: 'a1', name: 'Alice', email: 'a@test.com'));
+      final author = Author(id: 'a1', name: 'Alice', email: 'a@test.com');
+      context.insert(author);
       context.insert(Post(
         id: 'p1',
         title: 'T',
         body: 'B',
         publishedAt: DateTime.utc(2026, 1, 1),
+        author: author,
       ));
       await context.save();
 
-      final authorZpk = container.db.select(
-        "SELECT z_pk FROM author WHERE id = 'a1'",
-      ).first['z_pk'] as int;
-
-      // Link post to author via FK using z_pk
-      container.db.execute(
-        'UPDATE post SET author_id = ? WHERE id = ?',
-        [authorZpk, 'p1'],
-      );
-
+      // Verify FK is set to the author's UUID
       final before = container.db.select(
         "SELECT author_id FROM post WHERE id = 'p1'",
       );
-      expect(before.first['author_id'], authorZpk);
+      expect(before.first['author_id'], 'a1');
 
       // Delete author — Post.author relationship has DeleteRule.nullify
-      final author = (await context.fetchOne<Author>(id: 'a1'))!;
-      context.delete(author);
+      final fetched = (await context.fetchOne<Author>(id: 'a1'))!;
+      context.delete(fetched);
       await context.save();
 
       // Post still exists, author_id should be nullified
@@ -190,76 +155,57 @@ void main() {
 
   group('Explicit junction model PostTag', () {
     test('PostTag carries extra pinnedAt field', () async {
-      context.insert(Post(
+      final post = Post(
         id: 'p1',
         title: 'T',
         body: 'B',
         publishedAt: DateTime.utc(2026, 1, 1),
-      ));
-      context.insert(Tag(id: 't1', name: 'flutter'));
+      );
+      final tag = Tag(id: 't1', name: 'flutter');
+      context.insert(post);
+      context.insert(tag);
       await context.save();
-
-      final postZpk = container.db.select(
-        "SELECT z_pk FROM post WHERE id = 'p1'",
-      ).first['z_pk'] as int;
-      final tagZpk = container.db.select(
-        "SELECT z_pk FROM tag WHERE id = 't1'",
-      ).first['z_pk'] as int;
 
       context.insert(PostTag(
         id: 'pt1',
         pinnedAt: DateTime.utc(2026, 6, 15),
+        post: post,
+        tag: tag,
       ));
       await context.save();
-
-      // Link to post and tag via raw FK update using z_pk integers
-      container.db.execute(
-        'UPDATE post_tag SET post_id = ?, tag_id = ? WHERE id = ?',
-        [postZpk, tagZpk, 'pt1'],
-      );
 
       final results = await context.fetch(Query<PostTag>());
       expect(results, hasLength(1));
       expect(results.first.pinnedAt, DateTime.utc(2026, 6, 15));
 
-      // Verify FKs via raw query
+      // Verify FKs via raw query — should be UUID strings
       final raw = container.db.select(
         "SELECT post_id, tag_id FROM post_tag WHERE id = 'pt1'",
       );
-      expect(raw.first['post_id'], postZpk);
-      expect(raw.first['tag_id'], tagZpk);
+      expect(raw.first['post_id'], 'p1');
+      expect(raw.first['tag_id'], 't1');
     });
 
     test('deleting Post cascades to PostTag entries', () async {
-      context.insert(Post(
+      final post = Post(
         id: 'p1',
         title: 'T',
         body: 'B',
         publishedAt: DateTime.utc(2026, 1, 1),
-      ));
-      context.insert(Tag(id: 't1', name: 'flutter'));
-      await context.save();
-
-      final postZpk = container.db.select(
-        "SELECT z_pk FROM post WHERE id = 'p1'",
-      ).first['z_pk'] as int;
-      final tagZpk = container.db.select(
-        "SELECT z_pk FROM tag WHERE id = 't1'",
-      ).first['z_pk'] as int;
-
-      context.insert(PostTag(id: 'pt1'));
-      await context.save();
-
-      container.db.execute(
-        'UPDATE post_tag SET post_id = ?, tag_id = ? WHERE id = ?',
-        [postZpk, tagZpk, 'pt1'],
       );
+      final tag = Tag(id: 't1', name: 'flutter');
+      context.insert(post);
+      context.insert(tag);
+      await context.save();
+
+      context.insert(PostTag(id: 'pt1', post: post, tag: tag));
+      await context.save();
 
       expect(await context.fetchCount(Query<PostTag>()), 1);
 
       // Delete the post — PostTag.post has DeleteRule.cascade
-      final post = (await context.fetchOne<Post>(id: 'p1'))!;
-      context.delete(post);
+      final fetched = (await context.fetchOne<Post>(id: 'p1'))!;
+      context.delete(fetched);
       await context.save();
 
       expect(await context.fetchCount(Query<Post>()), 0);
