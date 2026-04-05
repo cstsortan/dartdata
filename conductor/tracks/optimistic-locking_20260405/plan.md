@@ -17,15 +17,15 @@ Ensure fetched objects carry their `z_opt` value.
 
 ### Tasks
 
-- [ ] Task 1.1: **Red** — Write test: after insert + save + fetch, the returned object has `z_opt == 0` (initial value).
-- [ ] Task 1.2: **Green** — Include `z_opt` in the SELECT result and store it in the context's object metadata (e.g., a `Map<String, int> _versions` keyed by `tableName:id`).
-- [ ] Task 1.3: **Red** — Write test: after update + save + fetch, `z_opt == 1`.
-- [ ] Task 1.4: **Green** — Implement version increment: change the save path for updates to `UPDATE ... SET ..., z_opt = z_opt + 1 WHERE id = ? AND z_opt = ?`.
+- [x] Task 1.1: **Red** — Write test: after insert + save + fetch, the returned object has `z_opt == 0` (initial value).
+- [x] Task 1.2: **Green** — Include `z_opt` in the SELECT result and store it in the context's object metadata (e.g., a `Map<String, int> _versions` keyed by `tableName:id`).
+- [x] Task 1.3: **Red** — Write test: after update + save + fetch, `z_opt == 1`.
+- [x] Task 1.4: **Green** — Implement version increment: change the save path for updates to `UPDATE ... SET ..., z_opt = z_opt + 1 WHERE id = ? AND z_opt = ?`.
 
 ### Verification
 
-- [ ] `flutter test` — version tracking tests pass
-- [ ] Existing tests still pass (they don't inspect z_opt)
+- [x] `flutter test` — version tracking tests pass
+- [x] Existing tests still pass (they don't inspect z_opt)
 
 ---
 

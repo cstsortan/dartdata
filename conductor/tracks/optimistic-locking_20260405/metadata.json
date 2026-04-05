@@ -2,18 +2,20 @@
   "id": "optimistic-locking_20260405",
   "title": "z_opt Optimistic Locking",
   "type": "feature",
-  "status": "pending",
+  "status": "in_progress",
   "created": "2026-04-05T00:00:00.000Z",
   "updated": "2026-04-05T00:00:00.000Z",
-  "current_phase": 0,
-  "current_task": null,
+  "current_phase": 2,
+  "current_task": "2.1",
   "phases": {
     "total": 3,
-    "completed": 0
+    "completed": 1
   },
   "tasks": {
     "total": 12,
-    "completed": 0
+    "completed": 4
   },
-  "commits": []
+  "commits": [
+    "89db991: feat(context): track z_opt version on fetch and after save"
+  ]
 }
