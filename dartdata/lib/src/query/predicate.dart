@@ -89,13 +89,16 @@ class QueryField<V> {
   // -------------------------------------------------------------------------
 
   Predicate<dynamic> contains(String substring) =>
-      Predicate('$columnName LIKE ?', ['%$substring%']);
+      Predicate('$columnName LIKE ? ESCAPE "\\"', ['%${_escapeLike(substring)}%']);
 
   Predicate<dynamic> startsWith(String prefix) =>
-      Predicate('$columnName LIKE ?', ['$prefix%']);
+      Predicate('$columnName LIKE ? ESCAPE "\\"', ['${_escapeLike(prefix)}%']);
 
   Predicate<dynamic> endsWith(String suffix) =>
-      Predicate('$columnName LIKE ?', ['%$suffix']);
+      Predicate('$columnName LIKE ? ESCAPE "\\"', ['%${_escapeLike(suffix)}']);
+
+  static String _escapeLike(String s) =>
+      s.replaceAll('\\', '\\\\').replaceAll('%', '\\%').replaceAll('_', '\\_');
 
   // -------------------------------------------------------------------------
   // Sorting

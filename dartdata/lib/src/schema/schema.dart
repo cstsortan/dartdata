@@ -1,3 +1,5 @@
+import '../annotations/relationship.dart';
+
 /// Holds the set of model types that a [ModelContainer] should persist.
 ///
 /// Pass the generated `$ClassName.descriptor` for each model:
@@ -7,7 +9,36 @@
 class Schema {
   final List<ModelDescriptor> descriptors;
 
-  const Schema(this.descriptors);
+  static final _validIdentifier = RegExp(r'^[a-zA-Z_][a-zA-Z0-9_]*$');
+
+  Schema(this.descriptors) {
+    _validateIdentifiers();
+  }
+
+  void _validateIdentifiers() {
+    for (final d in descriptors) {
+      _checkId(d.tableName, 'tableName on ${d.modelClassName}');
+      for (final col in d.columns) {
+        _checkId(col.columnName, 'columnName "${col.columnName}" on ${d.tableName}');
+      }
+      for (final rel in d.relationships) {
+        _checkId(rel.fieldName, 'relationship fieldName "${rel.fieldName}" on ${d.tableName}');
+        _checkId(rel.relatedTable, 'relatedTable "${rel.relatedTable}" on ${d.tableName}');
+        if (rel.fkColumnName != null) {
+          _checkId(rel.fkColumnName!, 'fkColumnName "${rel.fkColumnName}" on ${d.tableName}');
+        }
+      }
+    }
+  }
+
+  static void _checkId(String value, String context) {
+    if (!_validIdentifier.hasMatch(value)) {
+      throw ArgumentError(
+        'Invalid SQL identifier "$value" in $context. '
+        'Must match [a-zA-Z_][a-zA-Z0-9_]*.',
+      );
+    }
+  }
 }
 
 /// Runtime descriptor for a single `@model` class.
@@ -21,6 +52,13 @@ abstract class ModelDescriptor {
   List<RelationshipDefinition> get relationships;
   List<String> get externalFileFields;
   String get modelClassName;
+
+  /// The Dart [Type] of the model class this descriptor represents.
+  /// Used for O(1) descriptor lookup instead of string-based matching.
+  Type get modelType;
+
+  /// Reconstruct a model instance from a SQLite row map.
+  Object fromMap(Map<String, Object?> row);
 }
 
 /// Describes a single SQLite column derived from a `@model` field.
@@ -50,7 +88,11 @@ class RelationshipDefinition {
   final String relatedTable;
   final RelationshipCardinality cardinality;
   final String? inverseFieldName;
-  final String deleteRule;
+  final DeleteRule deleteRule;
+
+  /// The FK column name on the child table (e.g., 'trip_id').
+  /// Explicit rather than derived via convention.
+  final String? fkColumnName;
 
   const RelationshipDefinition({
     required this.fieldName,
@@ -58,6 +100,7 @@ class RelationshipDefinition {
     required this.cardinality,
     this.inverseFieldName,
     required this.deleteRule,
+    this.fkColumnName,
   });
 }
 

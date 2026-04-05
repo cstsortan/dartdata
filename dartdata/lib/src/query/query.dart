@@ -16,6 +16,11 @@ export 'sort_descriptor.dart';
 /// final trips = await context.fetch(query);
 /// ```
 class Query<T> {
+  // TODO(type-safety): Predicate<dynamic> erases the model type — a predicate
+  // built from $BucketListItem.title can be passed to Query<Trip> without error.
+  // Fix by making QueryField model-aware: QueryField<M, V> so predicates carry
+  // the correct model type, and Query<T> can require Predicate<T>.
+
   /// Filter predicate. `null` means fetch all rows.
   final Predicate<dynamic>? where;
 

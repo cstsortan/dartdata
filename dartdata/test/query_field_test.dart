@@ -95,19 +95,19 @@ void main() {
 
     test('contains produces LIKE with wildcards', () {
       final p = destination.contains('ar');
-      expect(p.sql, equals('destination LIKE ?'));
+      expect(p.sql, equals('destination LIKE ? ESCAPE "\\"'));
       expect(p.arguments, equals(['%ar%']));
     });
 
     test('startsWith produces LIKE with trailing wildcard', () {
       final p = destination.startsWith('Par');
-      expect(p.sql, equals('destination LIKE ?'));
+      expect(p.sql, equals('destination LIKE ? ESCAPE "\\"'));
       expect(p.arguments, equals(['Par%']));
     });
 
     test('endsWith produces LIKE with leading wildcard', () {
       final p = destination.endsWith('is');
-      expect(p.sql, equals('destination LIKE ?'));
+      expect(p.sql, equals('destination LIKE ? ESCAPE "\\"'));
       expect(p.arguments, equals(['%is']));
     });
 
@@ -164,7 +164,7 @@ void main() {
       expect(
         p.sql,
         equals(
-          '((destination = ?) OR (destination = ?)) AND (name LIKE ?)'),
+          '((destination = ?) OR (destination = ?)) AND (name LIKE ? ESCAPE "\\")'),
       );
       expect(p.arguments, equals(['Paris', 'Rome', 'Grand%']));
     });

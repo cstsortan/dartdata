@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:sqlite3/sqlite3.dart';
 
+import '../annotations/relationship.dart';
 import '../query/query.dart';
 import '../schema/schema.dart';
 import '../storage/external_file.dart';
@@ -24,7 +25,21 @@ class ModelContext {
   final ModelContainer container;
 
   final List<_PendingOperation> _pending = [];
-  final _ChangeNotifier _notifier = _ChangeNotifier();
+  final _controller = StreamController<ContextChangeSet>.broadcast(sync: true);
+
+  /// Descriptor lookup by runtime Type — O(1) instead of linear scan.
+  late final Map<Type, ModelDescriptor> _descriptorsByType = {
+    for (final d in container.schema.descriptors) d.modelType: d,
+  };
+
+  /// Reverse relationship index: parent tableName → list of (child descriptor, relationship).
+  /// Pre-computed to avoid O(D*R) scan per delete.
+  late final Map<String, List<_ChildRelationship>> _reverseRelationships = _buildReverseIndex();
+
+  /// Cached SQL templates per descriptor tableName.
+  late final Map<String, _SqlTemplates> _sqlTemplates = {
+    for (final d in container.schema.descriptors) d.tableName: _SqlTemplates.from(d),
+  };
 
   ModelContext(this.container);
 
@@ -80,49 +95,53 @@ class ModelContext {
     _pending.clear();
 
     // Notify observers of the change set.
-    _notifier.notify(affected);
+    _notifyChanges(affected);
   }
 
   /// Execute a single pending operation against the database.
   Future<void> _execute(_PendingOperation op, Database db) async {
     final descriptor = _descriptorFor(op.model);
     final map = (op.model as dynamic).toMap() as Map<String, Object?>;
+    final templates = _sqlTemplates[descriptor.tableName]!;
+
+    // Validate that toMap() keys match the descriptor's declared columns.
+    final declaredColumns = {for (final c in descriptor.columns) c.columnName};
+    final unknownKeys = map.keys.where((k) => !declaredColumns.contains(k));
+    if (unknownKeys.isNotEmpty) {
+      throw StateError(
+        'toMap() returned unknown columns $unknownKeys for ${descriptor.modelClassName}. '
+        'Allowed: $declaredColumns',
+      );
+    }
 
     switch (op.type) {
       case _OperationType.insert:
         // Persist any staged ExternalFile fields first.
         await _persistExternalFiles(op.model, descriptor, map);
 
-        final cols = map.keys.join(', ');
-        final placeholders = map.keys.map((_) => '?').join(', ');
-        db.execute(
-          'INSERT OR REPLACE INTO ${descriptor.tableName} ($cols) VALUES ($placeholders)',
-          map.values.toList(),
-        );
+        // Build values in descriptor column order for the cached template.
+        final values = descriptor.columns
+            .map((col) => map[col.columnName])
+            .toList();
+        db.execute(templates.insert, values);
 
       case _OperationType.update:
         await _persistExternalFiles(op.model, descriptor, map);
 
         final id = map['id'];
-        final setClauses =
-            map.keys.where((k) => k != 'id').map((k) => '$k = ?').join(', ');
         final values = [
-          ...map.entries.where((e) => e.key != 'id').map((e) => e.value),
+          ...descriptor.columns
+              .where((c) => c.columnName != 'id')
+              .map((c) => map[c.columnName]),
           id,
         ];
-        db.execute(
-          'UPDATE ${descriptor.tableName} SET $setClauses, z_opt = z_opt + 1 WHERE id = ?',
-          values,
-        );
+        db.execute(templates.update, values);
 
       case _OperationType.delete:
         final id = map['id'];
         // Handle ExternalFile deletions.
         await _deleteExternalFiles(op.model, descriptor);
-        db.execute(
-          'DELETE FROM ${descriptor.tableName} WHERE id = ?',
-          [id],
-        );
+        db.execute(templates.delete, [id]);
     }
   }
 
@@ -140,9 +159,7 @@ class ModelContext {
       query.where?.arguments ?? [],
     );
 
-    return rows
-        .map((row) => (descriptor as dynamic).fromMap(row) as T)
-        .toList();
+    return rows.map((row) => descriptor.fromMap(row) as T).toList();
   }
 
   /// Fetch the first object matching [query], or `null` if none exists.
@@ -164,7 +181,7 @@ class ModelContext {
       [id],
     );
     if (rows.isEmpty) return null;
-    return (descriptor as dynamic).fromMap(rows.first) as T;
+    return descriptor.fromMap(rows.first) as T;
   }
 
   /// Fetch related objects through a declared relationship.
@@ -194,18 +211,16 @@ class ModelContext {
       ),
     );
 
-    // The FK column on the child table is named after the inverse field + '_id'.
-    final inverseField = parentRel.inverseFieldName ?? parentDescriptor.tableName;
-    final fkColumn = '${inverseField}_id';
+    // Use explicit fkColumnName, or fall back to convention.
+    final fkColumn = parentRel.fkColumnName ??
+        '${parentRel.inverseFieldName ?? parentDescriptor.tableName}_id';
 
     final rows = container.db.select(
       'SELECT * FROM ${childDescriptor.tableName} WHERE $fkColumn = ?',
       [parentId],
     );
 
-    return rows
-        .map((row) => (childDescriptor as dynamic).fromMap(row) as T)
-        .toList();
+    return rows.map((row) => childDescriptor.fromMap(row) as T).toList();
   }
 
   /// Count objects matching [query] without fetching them.
@@ -225,7 +240,9 @@ class ModelContext {
 
   /// Execute [action] inside a single database transaction.
   ///
-  /// If [action] throws, all staged changes are rolled back.
+  /// Only operations added during [action] are committed. If [action] throws,
+  /// all staged changes are rolled back. Pre-existing pending operations are
+  /// preserved on failure.
   Future<T> transaction<T>(Future<T> Function() action) async {
     final snapshot = List<_PendingOperation>.from(_pending);
     _pending.clear();
@@ -249,7 +266,7 @@ class ModelContext {
   ///
   /// The stream emits after every successful save that affects at least one
   /// row. Used by [QueryObserver] to know when to re-run queries.
-  Stream<ContextChangeSet> get changes => _notifier.stream;
+  Stream<ContextChangeSet> get changes => _controller.stream;
 
   // -------------------------------------------------------------------------
   // Helpers
@@ -293,9 +310,20 @@ class ModelContext {
     }
   }
 
+  static final _safePathSegment = RegExp(r'^[a-zA-Z0-9_\-]+$');
+
   File _blobFile(String modelId, String fieldName) {
-    // Flat UUID-keyed directory, mirroring SwiftData's _EXTERNAL_DATA layout.
-    // We use modelId + fieldName as a deterministic UUID-like key.
+    // Validate to prevent path traversal via malicious model IDs.
+    if (!_safePathSegment.hasMatch(modelId)) {
+      throw ArgumentError(
+        'Invalid model id "$modelId". Must be alphanumeric/hyphens/underscores.',
+      );
+    }
+    if (!_safePathSegment.hasMatch(fieldName)) {
+      throw ArgumentError(
+        'Invalid field name "$fieldName". Must be alphanumeric/hyphens/underscores.',
+      );
+    }
     final uuid = '$modelId-$fieldName';
     return File(
         '${container.blobDirectory.path}/$uuid');
@@ -303,10 +331,8 @@ class ModelContext {
 
   /// Enforce delete rules for all pending delete operations.
   ///
-  /// Iterates pending deletes, looks up child descriptors that reference
-  /// the parent's table via [RelationshipDefinition], and dispatches to
-  /// rule-specific handlers. Returns SQL statements (e.g., nullify UPDATEs)
-  /// to be executed inside the transaction.
+  /// Uses the pre-computed [_reverseRelationships] index for O(1) lookup
+  /// per parent table instead of scanning all descriptors.
   List<_DeferredSql> _enforceDeleteRules() {
     final deferredSql = <_DeferredSql>[];
 
@@ -322,31 +348,24 @@ class ModelContext {
       final parentMap = (op.model as dynamic).toMap() as Map<String, Object?>;
       final parentId = parentMap['id'] as String;
 
-      for (final childDescriptor in container.schema.descriptors) {
-        for (final rel in childDescriptor.relationships) {
-          if (rel.relatedTable != parentDescriptor.tableName) continue;
+      final children = _reverseRelationships[parentDescriptor.tableName];
+      if (children == null) continue;
 
-          final fkColumn = '${rel.fieldName}_id';
+      for (final child in children) {
+        final fkColumn = child.fkColumnName;
 
-          // Only process child-side relationships (where the FK column
-          // exists on this descriptor's table). Skip parent-side entries.
-          if (!childDescriptor.columns.any((c) => c.columnName == fkColumn)) {
-            continue;
-          }
-
-          switch (rel.deleteRule) {
-            case 'cascade':
-              _cascadeDelete(childDescriptor, fkColumn, parentId);
-            case 'nullify':
-              deferredSql.add(_DeferredSql(
-                'UPDATE ${childDescriptor.tableName} SET $fkColumn = NULL WHERE $fkColumn = ?',
-                [parentId],
-              ));
-            case 'deny':
-              _denyDelete(childDescriptor, fkColumn, parentId);
-            case 'noAction':
-              break;
-          }
+        switch (child.deleteRule) {
+          case DeleteRule.cascade:
+            _cascadeDelete(child.descriptor, fkColumn, parentId);
+          case DeleteRule.nullify:
+            deferredSql.add(_DeferredSql(
+              'UPDATE ${child.descriptor.tableName} SET $fkColumn = NULL WHERE $fkColumn = ?',
+              [parentId],
+            ));
+          case DeleteRule.deny:
+            _denyDelete(child.descriptor, fkColumn, parentId);
+          case DeleteRule.noAction:
+            break;
         }
       }
     }
@@ -354,7 +373,7 @@ class ModelContext {
     return deferredSql;
   }
 
-  /// CASCADE: query child rows by FK, reconstruct models, add them as
+  /// CASCADE: query child IDs by FK, reconstruct models, add them as
   /// pending deletes (which will recursively trigger their own rules).
   void _cascadeDelete(
     ModelDescriptor childDescriptor,
@@ -367,8 +386,8 @@ class ModelContext {
     );
 
     for (final row in rows) {
-      final childModel = (childDescriptor as dynamic).fromMap(row);
-      _pending.add(_PendingOperation(_OperationType.delete, childModel as Object));
+      final childModel = childDescriptor.fromMap(row);
+      _pending.add(_PendingOperation(_OperationType.delete, childModel));
     }
   }
 
@@ -391,25 +410,49 @@ class ModelContext {
     }
   }
 
+  /// Build reverse relationship index from schema.
+  Map<String, List<_ChildRelationship>> _buildReverseIndex() {
+    final index = <String, List<_ChildRelationship>>{};
+    for (final childDescriptor in container.schema.descriptors) {
+      for (final rel in childDescriptor.relationships) {
+        // Use explicit fkColumnName, or fall back to convention.
+        final fkColumn = rel.fkColumnName ?? '${rel.fieldName}_id';
+
+        // Only index child-side relationships (where the FK column exists).
+        if (!childDescriptor.columns.any((c) => c.columnName == fkColumn)) {
+          continue;
+        }
+
+        index.putIfAbsent(rel.relatedTable, () => []).add(
+          _ChildRelationship(childDescriptor, rel.deleteRule, fkColumn),
+        );
+      }
+    }
+    return index;
+  }
+
   ModelDescriptor _descriptorFor(Object model) {
-    final typeName = model.runtimeType.toString();
-    return container.schema.descriptors.firstWhere(
-      (d) => d.modelClassName == typeName,
-      orElse: () => throw StateError(
-        'No descriptor registered for $typeName. '
-        'Did you add it to your Schema?',
-      ),
+    final descriptor = _descriptorsByType[model.runtimeType];
+    if (descriptor != null) return descriptor;
+    throw StateError(
+      'No descriptor registered for ${model.runtimeType}. '
+      'Did you add it to your Schema?',
     );
   }
 
   ModelDescriptor _descriptorForType<T>() {
-    return container.schema.descriptors.firstWhere(
-      (d) => d.modelClassName == T.toString(),
-      orElse: () => throw StateError(
-        'No descriptor registered for $T. '
-        'Did you add it to your Schema?',
-      ),
+    final descriptor = _descriptorsByType[T];
+    if (descriptor != null) return descriptor;
+    throw StateError(
+      'No descriptor registered for $T. '
+      'Did you add it to your Schema?',
     );
+  }
+
+  void _notifyChanges(List<_PendingOperation> ops) {
+    if (ops.isEmpty) return;
+    // TODO: build a real ContextChangeSet from ops
+    _controller.add(const ContextChangeSet());
   }
 }
 
@@ -429,6 +472,45 @@ class _PendingOperation {
   final _OperationType type;
   final Object model;
   _PendingOperation(this.type, this.model);
+}
+
+/// Pre-computed child relationship entry for the reverse index.
+class _ChildRelationship {
+  final ModelDescriptor descriptor;
+  final DeleteRule deleteRule;
+  final String fkColumnName;
+  _ChildRelationship(this.descriptor, this.deleteRule, this.fkColumnName);
+}
+
+/// Cached SQL templates for a single table, built once from the descriptor.
+class _SqlTemplates {
+  final String insert;
+  final String update;
+  final String delete;
+
+  _SqlTemplates._({required this.insert, required this.update, required this.delete});
+
+  factory _SqlTemplates.from(ModelDescriptor d) {
+    final cols = d.columns.map((c) => c.columnName).join(', ');
+    final placeholders = List.filled(d.columns.length, '?').join(', ');
+    final setClauses = d.columns
+        .where((c) => c.columnName != 'id')
+        .map((c) => '${c.columnName} = ?')
+        .join(', ');
+
+    // Upsert on id conflict: preserves z_pk and increments z_opt.
+    final upsertSet = d.columns
+        .where((c) => c.columnName != 'id')
+        .map((c) => '${c.columnName} = excluded.${c.columnName}')
+        .join(', ');
+
+    return _SqlTemplates._(
+      insert: 'INSERT INTO ${d.tableName} ($cols) VALUES ($placeholders) '
+              'ON CONFLICT(id) DO UPDATE SET $upsertSet, z_opt = z_opt + 1',
+      update: 'UPDATE ${d.tableName} SET $setClauses, z_opt = z_opt + 1 WHERE id = ?',
+      delete: 'DELETE FROM ${d.tableName} WHERE id = ?',
+    );
+  }
 }
 
 /// The set of changes reported after a successful [ModelContext.save].
@@ -453,72 +535,4 @@ class ContextChangeSet {
     final all = {...insertedTables, ...updatedTables, ...deletedTables};
     return tableNames.any(all.contains);
   }
-}
-
-class _ChangeNotifier {
-  final _controller = _StreamController<ContextChangeSet>();
-
-  Stream<ContextChangeSet> get stream => _controller.stream;
-
-  void notify(List<_PendingOperation> ops) {
-    if (ops.isEmpty) return;
-    // TODO: build a real ContextChangeSet from ops
-    _controller.add(const ContextChangeSet());
-  }
-}
-
-// Minimal stream controller without dart:async import conflict.
-class _StreamController<T> {
-  final List<void Function(T)> _listeners = [];
-
-  Stream<T> get stream => _Stream<T>(this);
-
-  void add(T value) {
-    for (final listener in _listeners) {
-      listener(value);
-    }
-  }
-}
-
-class _Stream<T> extends Stream<T> {
-  final _StreamController<T> _controller;
-  _Stream(this._controller);
-
-  @override
-  StreamSubscription<T> listen(
-    void Function(T event)? onData, {
-    Function? onError,
-    void Function()? onDone,
-    bool? cancelOnError,
-  }) {
-    _controller._listeners.add(onData ?? (_) {});
-    return _StreamSubscription<T>(
-        _controller, onData ?? (_) {});
-  }
-}
-
-class _StreamSubscription<T> implements StreamSubscription<T> {
-  final _StreamController<T> _controller;
-  final void Function(T) _listener;
-  _StreamSubscription(this._controller, this._listener);
-
-  @override
-  Future<void> cancel() async {
-    _controller._listeners.remove(_listener);
-  }
-
-  @override
-  void onData(void Function(T data)? handleData) {}
-  @override
-  void onError(Function? handleError) {}
-  @override
-  void onDone(void Function()? handleDone) {}
-  @override
-  void pause([Future<void>? resumeSignal]) {}
-  @override
-  void resume() {}
-  @override
-  bool get isPaused => false;
-  @override
-  Future<E> asFuture<E>([E? futureValue]) => Future.value(futureValue as E);
 }
