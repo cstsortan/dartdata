@@ -124,7 +124,6 @@ void main() {
         final items = await context.fetch(Query<BucketListItem>());
         expect(items, isEmpty);
       },
-      skip: 'DeleteRule.cascade not yet implemented in ModelContext',
     );
   });
 
@@ -157,7 +156,6 @@ void main() {
         expect(accommodations.length, equals(1));
         expect(accommodations.first.tripId, isNull);
       },
-      skip: 'DeleteRule.nullify not yet implemented in ModelContext',
     );
   });
 
@@ -170,6 +168,16 @@ void main() {
     test(
       'deleting a Trip with related BucketListItems throws StateError',
       () async {
+        // Use a separate container with deny descriptor.
+        final denyContainer = await ModelContainer.create(
+          schema: Schema([
+            TripDescriptor(),
+            DenyBucketListItemDescriptor(),
+          ]),
+          configuration: const ModelConfiguration.inMemory(),
+        );
+        final denyContext = ModelContext(denyContainer);
+
         final trip = Trip(
           id: 'trip-deny',
           name: 'Deny Trip',
@@ -177,15 +185,62 @@ void main() {
           startDate: DateTime.utc(2026, 1, 1),
           endDate: DateTime.utc(2026, 1, 2),
         );
-        context.insert(trip);
-        context.insert(BucketListItem(
+        denyContext.insert(trip);
+        denyContext.insert(BucketListItem(
             id: 'bli-d1', title: 'Block delete', tripId: 'trip-deny'));
-        await context.save();
+        await denyContext.save();
 
-        context.delete(trip);
-        expect(() async => await context.save(), throwsStateError);
+        denyContext.delete(trip);
+        expect(() async => await denyContext.save(), throwsStateError);
+
+        denyContainer.close();
       },
-      skip: 'DeleteRule.deny not yet implemented in ModelContext',
+    );
+  });
+
+  // ---------------------------------------------------------------------------
+  // DeleteRule.noAction — delete parent, children become orphans
+  // ---------------------------------------------------------------------------
+  group('DeleteRule.noAction', () {
+    test(
+      'deleting a Trip leaves orphaned BucketListItems with stale FK',
+      () async {
+        // Use a separate container with noAction descriptor.
+        final noActionContainer = await ModelContainer.create(
+          schema: Schema([
+            TripDescriptor(),
+            NoActionBucketListItemDescriptor(),
+          ]),
+          configuration: const ModelConfiguration.inMemory(),
+        );
+        final noActionContext = ModelContext(noActionContainer);
+
+        final trip = Trip(
+          id: 'trip-noaction',
+          name: 'NoAction Trip',
+          destination: 'W',
+          startDate: DateTime.utc(2026, 1, 1),
+          endDate: DateTime.utc(2026, 1, 2),
+        );
+        noActionContext.insert(trip);
+        noActionContext.insert(BucketListItem(
+            id: 'bli-na1', title: 'Orphan Item', tripId: 'trip-noaction'));
+        await noActionContext.save();
+
+        noActionContext.delete(trip);
+        await noActionContext.save();
+
+        // Trip is gone.
+        final trips = await noActionContext.fetch(Query<Trip>());
+        expect(trips, isEmpty);
+
+        // BucketListItem still exists with stale FK.
+        final items = await noActionContext.fetch(Query<BucketListItem>());
+        expect(items.length, equals(1));
+        expect(items.first.tripId, equals('trip-noaction'));
+
+        noActionContainer.close();
+      },
     );
   });
 
@@ -228,6 +283,167 @@ void main() {
         "SELECT trip_id FROM living_accommodation WHERE id = 'acc-linked'",
       );
       expect(rows.first['trip_id'], equals('trip-opt'));
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Relationship fetching — fetchRelated
+  // ---------------------------------------------------------------------------
+  group('fetchRelated', () {
+    test('returns all BucketListItems related to a Trip', () async {
+      final trip = Trip(
+        id: 'trip-fetch',
+        name: 'Fetch Trip',
+        destination: 'A',
+        startDate: DateTime.utc(2026, 1, 1),
+        endDate: DateTime.utc(2026, 1, 2),
+      );
+      context.insert(trip);
+      context.insert(BucketListItem(
+          id: 'bli-f1', title: 'Item 1', tripId: 'trip-fetch'));
+      context.insert(BucketListItem(
+          id: 'bli-f2', title: 'Item 2', tripId: 'trip-fetch'));
+      context.insert(BucketListItem(
+          id: 'bli-other', title: 'Other Item', tripId: 'other-trip'));
+      await context.save();
+
+      final items = await context.fetchRelated<BucketListItem>(
+          trip, 'bucketList');
+      expect(items.length, equals(2));
+      expect(items.map((i) => i.id).toSet(), equals({'bli-f1', 'bli-f2'}));
+    });
+
+    test('returns single LivingAccommodation related to a Trip', () async {
+      final trip = Trip(
+        id: 'trip-acc',
+        name: 'Acc Trip',
+        destination: 'B',
+        startDate: DateTime.utc(2026, 1, 1),
+        endDate: DateTime.utc(2026, 1, 2),
+      );
+      context.insert(trip);
+      context.insert(LivingAccommodation(
+          id: 'acc-f1', address: '10 Main St', tripId: 'trip-acc'));
+      await context.save();
+
+      final accs = await context.fetchRelated<LivingAccommodation>(
+          trip, 'accommodation');
+      expect(accs.length, equals(1));
+      expect(accs.first.id, equals('acc-f1'));
+    });
+
+    test('returns empty list when no children exist', () async {
+      final trip = Trip(
+        id: 'trip-empty',
+        name: 'Empty Trip',
+        destination: 'C',
+        startDate: DateTime.utc(2026, 1, 1),
+        endDate: DateTime.utc(2026, 1, 2),
+      );
+      context.insert(trip);
+      await context.save();
+
+      final items = await context.fetchRelated<BucketListItem>(
+          trip, 'bucketList');
+      expect(items, isEmpty);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Edge cases
+  // ---------------------------------------------------------------------------
+  group('Edge cases', () {
+    test('nested cascade: Trip → BucketListItem → SubItem all deleted',
+        () async {
+      final nestedContainer = await ModelContainer.create(
+        schema: Schema([
+          TripDescriptor(),
+          BucketListItemDescriptor(),
+          SubItemDescriptor(),
+        ]),
+        configuration: const ModelConfiguration.inMemory(),
+      );
+      final ctx = ModelContext(nestedContainer);
+
+      final trip = Trip(
+        id: 'trip-nested',
+        name: 'Nested',
+        destination: 'D',
+        startDate: DateTime.utc(2026, 1, 1),
+        endDate: DateTime.utc(2026, 1, 2),
+      );
+      ctx.insert(trip);
+      ctx.insert(BucketListItem(
+          id: 'bli-n1', title: 'Parent Item', tripId: 'trip-nested'));
+      ctx.insert(SubItem(
+          id: 'sub-1', note: 'Sub note', bucketListItemId: 'bli-n1'));
+      await ctx.save();
+
+      ctx.delete(trip);
+      await ctx.save();
+
+      final items = await ctx.fetch(Query<BucketListItem>());
+      final subItems = await ctx.fetch(Query<SubItem>());
+      expect(items, isEmpty);
+      expect(subItems, isEmpty);
+
+      nestedContainer.close();
+    });
+
+    test('deleting a model with no relationships proceeds normally', () async {
+      // Photo has no relationships — just a plain model.
+      final photoContainer = await ModelContainer.create(
+        schema: Schema([PhotoDescriptor()]),
+        configuration: const ModelConfiguration.inMemory(),
+      );
+      final ctx = ModelContext(photoContainer);
+
+      final photo = Photo(id: 'p1', title: 'Sunset');
+      ctx.insert(photo);
+      await ctx.save();
+
+      ctx.delete(photo);
+      await ctx.save();
+
+      final photos = await ctx.fetch(Query<Photo>());
+      expect(photos, isEmpty);
+
+      photoContainer.close();
+    });
+
+    test('deny rule prevents delete and allows transaction rollback', () async {
+      final denyContainer = await ModelContainer.create(
+        schema: Schema([
+          TripDescriptor(),
+          DenyBucketListItemDescriptor(),
+        ]),
+        configuration: const ModelConfiguration.inMemory(),
+      );
+      final ctx = ModelContext(denyContainer);
+
+      final trip = Trip(
+        id: 'trip-deny-txn',
+        name: 'Deny Txn Trip',
+        destination: 'E',
+        startDate: DateTime.utc(2026, 1, 1),
+        endDate: DateTime.utc(2026, 1, 2),
+      );
+      ctx.insert(trip);
+      ctx.insert(BucketListItem(
+          id: 'bli-dt1', title: 'Block', tripId: 'trip-deny-txn'));
+      await ctx.save();
+
+      // Deny should throw before any SQL executes.
+      ctx.delete(trip);
+      expect(() async => await ctx.save(), throwsStateError);
+
+      // Trip and item should still exist after the failed save.
+      final trips = await ctx.fetch(Query<Trip>());
+      final items = await ctx.fetch(Query<BucketListItem>());
+      expect(trips.length, equals(1));
+      expect(items.length, equals(1));
+
+      denyContainer.close();
     });
   });
 }

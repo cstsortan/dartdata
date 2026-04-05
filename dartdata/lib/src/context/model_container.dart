@@ -179,6 +179,18 @@ class ModelContainer {
         ON ${descriptor.tableName} (${col.columnName})
       ''');
     }
+
+    // Auto-index FK columns used in relationships.
+    for (final rel in descriptor.relationships) {
+      final fkCol = rel.fkColumnName ?? '${rel.fieldName}_id';
+      if (descriptor.columns.any((c) => c.columnName == fkCol)) {
+        db.execute('''
+          CREATE INDEX IF NOT EXISTS
+          idx_${descriptor.tableName}_$fkCol
+          ON ${descriptor.tableName} ($fkCol)
+        ''');
+      }
+    }
   }
 
   String _sqlType(ColumnType type) => switch (type) {

@@ -2,18 +2,23 @@
   "id": "relationship-enforcement_20260405",
   "title": "Relationship Enforcement & Delete Rules",
   "type": "feature",
-  "status": "pending",
+  "status": "complete",
   "created": "2026-04-05T00:00:00.000Z",
   "updated": "2026-04-05T00:00:00.000Z",
-  "current_phase": 0,
+  "current_phase": 4,
   "current_task": null,
   "phases": {
     "total": 4,
-    "completed": 0
+    "completed": 4
   },
   "tasks": {
     "total": 18,
-    "completed": 0
+    "completed": 18
   },
-  "commits": []
+  "commits": [
+    "4745ad0: feat(context): implement delete rule enforcement with cascade support",
+    "031c091: feat(context): add nullify, deny, and noAction delete rule tests",
+    "cc44b03: feat(context): add fetchRelated method for relationship traversal",
+    "f6b4b88: test(context): add edge case tests for nested cascade, no-rel delete, deny+rollback"
+  ]
 }

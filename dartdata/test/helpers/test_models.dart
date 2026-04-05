@@ -48,6 +48,9 @@ class TripDescriptor extends ModelDescriptor {
   String get modelClassName => 'Trip';
 
   @override
+  Type get modelType => Trip;
+
+  @override
   List<ColumnDefinition> get columns => [
         const ColumnDefinition(
             columnName: 'id',
@@ -64,11 +67,29 @@ class TripDescriptor extends ModelDescriptor {
       ];
 
   @override
-  List<RelationshipDefinition> get relationships => [];
+  List<RelationshipDefinition> get relationships => [
+        const RelationshipDefinition(
+          fieldName: 'bucketList',
+          relatedTable: 'bucket_list_item',
+          cardinality: RelationshipCardinality.toMany,
+          inverseFieldName: 'trip',
+          deleteRule: DeleteRule.cascade,
+          fkColumnName: 'trip_id',
+        ),
+        const RelationshipDefinition(
+          fieldName: 'accommodation',
+          relatedTable: 'living_accommodation',
+          cardinality: RelationshipCardinality.toOne,
+          inverseFieldName: 'trip',
+          deleteRule: DeleteRule.nullify,
+          fkColumnName: 'trip_id',
+        ),
+      ];
 
   @override
   List<String> get externalFileFields => [];
 
+  @override
   Trip fromMap(Map<String, Object?> row) => Trip(
         id: row['id'] as String,
         name: row['name'] as String,
@@ -113,6 +134,9 @@ class PhotoDescriptor extends ModelDescriptor {
   String get modelClassName => 'Photo';
 
   @override
+  Type get modelType => Photo;
+
+  @override
   List<ColumnDefinition> get columns => [
         const ColumnDefinition(
             columnName: 'id',
@@ -130,6 +154,7 @@ class PhotoDescriptor extends ModelDescriptor {
   @override
   List<String> get externalFileFields => ['image_data'];
 
+  @override
   Photo fromMap(Map<String, Object?> row) => Photo(
         id: row['id'] as String,
         title: row['title'] as String,
@@ -177,6 +202,9 @@ class BucketListItemDescriptor extends ModelDescriptor {
   String get modelClassName => 'BucketListItem';
 
   @override
+  Type get modelType => BucketListItem;
+
+  @override
   List<ColumnDefinition> get columns => [
         const ColumnDefinition(
             columnName: 'id',
@@ -197,13 +225,186 @@ class BucketListItemDescriptor extends ModelDescriptor {
           relatedTable: 'trip',
           cardinality: RelationshipCardinality.toOne,
           inverseFieldName: 'bucketList',
-          deleteRule: 'cascade',
+          deleteRule: DeleteRule.cascade,
+          fkColumnName: 'trip_id',
+          isForeignKeySide: true,
         ),
       ];
 
   @override
   List<String> get externalFileFields => [];
 
+  @override
+  BucketListItem fromMap(Map<String, Object?> row) => BucketListItem(
+        id: row['id'] as String,
+        title: row['title'] as String,
+        isInBucket: (row['is_in_bucket'] as int) == 1,
+        tripId: row['trip_id'] as String?,
+      );
+}
+
+// ---------------------------------------------------------------------------
+// SubItem model (child of BucketListItem, for nested cascade testing)
+// ---------------------------------------------------------------------------
+
+class SubItem {
+  final String id;
+  String note;
+  String? bucketListItemId;
+
+  SubItem({
+    required this.id,
+    required this.note,
+    this.bucketListItemId,
+  });
+
+  Map<String, Object?> toMap() => {
+        'id': id,
+        'note': note,
+        'bucket_list_item_id': bucketListItemId,
+      };
+}
+
+class SubItemDescriptor extends ModelDescriptor {
+  @override
+  String get tableName => 'sub_item';
+
+  @override
+  String get modelClassName => 'SubItem';
+
+  @override
+  Type get modelType => SubItem;
+
+  @override
+  List<ColumnDefinition> get columns => [
+        const ColumnDefinition(
+            columnName: 'id',
+            type: ColumnType.text,
+            isPrimaryKey: true,
+            isNullable: false),
+        const ColumnDefinition(columnName: 'note', type: ColumnType.text),
+        const ColumnDefinition(
+            columnName: 'bucket_list_item_id',
+            type: ColumnType.text,
+            isNullable: true),
+      ];
+
+  @override
+  List<RelationshipDefinition> get relationships => [
+        const RelationshipDefinition(
+          fieldName: 'bucket_list_item',
+          relatedTable: 'bucket_list_item',
+          cardinality: RelationshipCardinality.toOne,
+          inverseFieldName: 'subItems',
+          deleteRule: DeleteRule.cascade,
+          fkColumnName: 'bucket_list_item_id',
+          isForeignKeySide: true,
+        ),
+      ];
+
+  @override
+  List<String> get externalFileFields => [];
+
+  @override
+  SubItem fromMap(Map<String, Object?> row) => SubItem(
+        id: row['id'] as String,
+        note: row['note'] as String,
+        bucketListItemId: row['bucket_list_item_id'] as String?,
+      );
+}
+
+/// Variant of [BucketListItemDescriptor] with [DeleteRule.deny] for testing.
+class DenyBucketListItemDescriptor extends ModelDescriptor {
+  @override
+  String get tableName => 'bucket_list_item';
+
+  @override
+  String get modelClassName => 'BucketListItem';
+
+  @override
+  Type get modelType => BucketListItem;
+
+  @override
+  List<ColumnDefinition> get columns => [
+        const ColumnDefinition(
+            columnName: 'id',
+            type: ColumnType.text,
+            isPrimaryKey: true,
+            isNullable: false),
+        const ColumnDefinition(columnName: 'title', type: ColumnType.text),
+        const ColumnDefinition(
+            columnName: 'is_in_bucket', type: ColumnType.integer),
+        const ColumnDefinition(
+            columnName: 'trip_id', type: ColumnType.text, isNullable: true),
+      ];
+
+  @override
+  List<RelationshipDefinition> get relationships => [
+        const RelationshipDefinition(
+          fieldName: 'trip',
+          relatedTable: 'trip',
+          cardinality: RelationshipCardinality.toOne,
+          inverseFieldName: 'bucketList',
+          deleteRule: DeleteRule.deny,
+          fkColumnName: 'trip_id',
+          isForeignKeySide: true,
+        ),
+      ];
+
+  @override
+  List<String> get externalFileFields => [];
+
+  @override
+  BucketListItem fromMap(Map<String, Object?> row) => BucketListItem(
+        id: row['id'] as String,
+        title: row['title'] as String,
+        isInBucket: (row['is_in_bucket'] as int) == 1,
+        tripId: row['trip_id'] as String?,
+      );
+}
+
+/// Variant of [BucketListItemDescriptor] with [DeleteRule.noAction] for testing.
+class NoActionBucketListItemDescriptor extends ModelDescriptor {
+  @override
+  String get tableName => 'bucket_list_item';
+
+  @override
+  String get modelClassName => 'BucketListItem';
+
+  @override
+  Type get modelType => BucketListItem;
+
+  @override
+  List<ColumnDefinition> get columns => [
+        const ColumnDefinition(
+            columnName: 'id',
+            type: ColumnType.text,
+            isPrimaryKey: true,
+            isNullable: false),
+        const ColumnDefinition(columnName: 'title', type: ColumnType.text),
+        const ColumnDefinition(
+            columnName: 'is_in_bucket', type: ColumnType.integer),
+        const ColumnDefinition(
+            columnName: 'trip_id', type: ColumnType.text, isNullable: true),
+      ];
+
+  @override
+  List<RelationshipDefinition> get relationships => [
+        const RelationshipDefinition(
+          fieldName: 'trip',
+          relatedTable: 'trip',
+          cardinality: RelationshipCardinality.toOne,
+          inverseFieldName: 'bucketList',
+          deleteRule: DeleteRule.noAction,
+          fkColumnName: 'trip_id',
+          isForeignKeySide: true,
+        ),
+      ];
+
+  @override
+  List<String> get externalFileFields => [];
+
+  @override
   BucketListItem fromMap(Map<String, Object?> row) => BucketListItem(
         id: row['id'] as String,
         title: row['title'] as String,
@@ -247,6 +448,9 @@ class LivingAccommodationDescriptor extends ModelDescriptor {
   String get modelClassName => 'LivingAccommodation';
 
   @override
+  Type get modelType => LivingAccommodation;
+
+  @override
   List<ColumnDefinition> get columns => [
         const ColumnDefinition(
             columnName: 'id',
@@ -264,13 +468,16 @@ class LivingAccommodationDescriptor extends ModelDescriptor {
           fieldName: 'trip',
           relatedTable: 'trip',
           cardinality: RelationshipCardinality.toOne,
-          deleteRule: 'nullify',
+          deleteRule: DeleteRule.nullify,
+          fkColumnName: 'trip_id',
+          isForeignKeySide: true,
         ),
       ];
 
   @override
   List<String> get externalFileFields => [];
 
+  @override
   LivingAccommodation fromMap(Map<String, Object?> row) => LivingAccommodation(
         id: row['id'] as String,
         address: row['address'] as String,

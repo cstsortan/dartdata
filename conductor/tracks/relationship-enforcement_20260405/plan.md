@@ -3,7 +3,7 @@
 **Track ID:** relationship-enforcement_20260405
 **Spec:** [spec.md](./spec.md)
 **Created:** 2026-04-05
-**Status:** [ ] Pending | [~] In Progress | [x] Complete
+**Status:** [x] Complete
 
 ## Overview
 
@@ -17,14 +17,14 @@ Build the internal machinery in `ModelContext` to resolve relationships and enfo
 
 ### Tasks
 
-- [ ] Task 1.1: **Red** — Write test: `DeleteRule.cascade` deleting a Trip with BucketListItems also deletes the items. Un-skip the existing cascade test in `relationship_test.dart`.
-- [ ] Task 1.2: **Green** — Implement `_enforceDeleteRules()` in `ModelContext` that iterates pending deletes, looks up `RelationshipDefinition` entries from the descriptor, and dispatches to rule-specific handlers. Implement the cascade handler: query child rows by FK, recursively add them to pending deletes.
-- [ ] Task 1.3: **Refactor** — Extract delete rule dispatch into a clean switch on `DeleteRule` values.
+- [x] Task 1.1: **Red** — Write test: `DeleteRule.cascade` deleting a Trip with BucketListItems also deletes the items. Un-skip the existing cascade test in `relationship_test.dart`.
+- [x] Task 1.2: **Green** — Implement `_enforceDeleteRules()` in `ModelContext` that iterates pending deletes, looks up `RelationshipDefinition` entries from the descriptor, and dispatches to rule-specific handlers. Implement the cascade handler: query child rows by FK, recursively add them to pending deletes.
+- [x] Task 1.3: **Refactor** — Extract delete rule dispatch into a clean switch on `DeleteRule` values.
 
 ### Verification
 
-- [ ] `flutter test test/relationship_test.dart` — cascade test passes
-- [ ] Existing 120 tests still pass
+- [x] `flutter test test/relationship_test.dart` — cascade test passes
+- [x] Existing 120 tests still pass
 
 ---
 
@@ -34,18 +34,18 @@ Implement the remaining two active delete rules.
 
 ### Tasks
 
-- [ ] Task 2.1: **Red** — Write test: `DeleteRule.nullify` deleting a Trip sets `tripId` to NULL on the LivingAccommodation row. Un-skip the existing nullify test.
-- [ ] Task 2.2: **Green** — Implement nullify handler: `UPDATE child_table SET fk_col = NULL WHERE fk_col = ?` for the parent's z_pk.
-- [ ] Task 2.3: **Red** — Write test: `DeleteRule.deny` deleting a Trip with BucketListItems throws `StateError`. Un-skip the existing deny test.
-- [ ] Task 2.4: **Green** — Implement deny handler: `SELECT COUNT(*) FROM child_table WHERE fk_col = ?`; throw `StateError` if count > 0.
-- [ ] Task 2.5: **Red** — Write test: `DeleteRule.noAction` deleting a parent leaves orphaned children with stale FK values.
-- [ ] Task 2.6: **Green** — Implement noAction handler (no-op — just proceed with parent delete).
+- [x] Task 2.1: **Red** — Write test: `DeleteRule.nullify` deleting a Trip sets `tripId` to NULL on the LivingAccommodation row. Un-skip the existing nullify test.
+- [x] Task 2.2: **Green** — Implement nullify handler: `UPDATE child_table SET fk_col = NULL WHERE fk_col = ?` for the parent's z_pk.
+- [x] Task 2.3: **Red** — Write test: `DeleteRule.deny` deleting a Trip with BucketListItems throws `StateError`. Un-skip the existing deny test.
+- [x] Task 2.4: **Green** — Implement deny handler: `SELECT COUNT(*) FROM child_table WHERE fk_col = ?`; throw `StateError` if count > 0.
+- [x] Task 2.5: **Red** — Write test: `DeleteRule.noAction` deleting a parent leaves orphaned children with stale FK values.
+- [x] Task 2.6: **Green** — Implement noAction handler (no-op — just proceed with parent delete).
 
 ### Verification
 
-- [ ] All 3 previously-skipped relationship tests now pass
-- [ ] `flutter test test/relationship_test.dart` — all tests pass
-- [ ] `flutter test` — zero failures
+- [x] All 3 previously-skipped relationship tests now pass
+- [x] `flutter test test/relationship_test.dart` — all tests pass
+- [x] `flutter test` — zero failures
 
 ---
 
@@ -55,17 +55,17 @@ Add the ability to traverse relationships and fetch related objects.
 
 ### Tasks
 
-- [ ] Task 3.1: **Red** — Write test: `context.fetchRelated<BucketListItem>(trip, 'bucketList')` returns all BucketListItems whose `tripId` matches the trip's z_pk.
-- [ ] Task 3.2: **Red** — Write test: `context.fetchRelated<LivingAccommodation>(trip, 'accommodation')` returns the single related object or null.
-- [ ] Task 3.3: **Green** — Implement `fetchRelated<T>(model, relationshipField)` in `ModelContext`: look up `RelationshipDefinition` by field name, build a query on the child table filtering by FK = parent z_pk, return results.
-- [ ] Task 3.4: **Red** — Write test: fetching related objects on a model with no children returns empty list.
-- [ ] Task 3.5: **Green** — Handle the empty-result case gracefully.
-- [ ] Task 3.6: **Refactor** — Clean up API surface; ensure `fetchRelated` has clear docs and type safety.
+- [x] Task 3.1: **Red** — Write test: `context.fetchRelated<BucketListItem>(trip, 'bucketList')` returns all BucketListItems whose `tripId` matches the trip's z_pk.
+- [x] Task 3.2: **Red** — Write test: `context.fetchRelated<LivingAccommodation>(trip, 'accommodation')` returns the single related object or null.
+- [x] Task 3.3: **Green** — Implement `fetchRelated<T>(model, relationshipField)` in `ModelContext`: look up `RelationshipDefinition` by field name, build a query on the child table filtering by FK = parent z_pk, return results.
+- [x] Task 3.4: **Red** — Write test: fetching related objects on a model with no children returns empty list.
+- [x] Task 3.5: **Green** — Handle the empty-result case gracefully.
+- [x] Task 3.6: **Refactor** — Clean up API surface; ensure `fetchRelated` has clear docs and type safety.
 
 ### Verification
 
-- [ ] `flutter test test/relationship_test.dart` — all relationship fetch tests pass
-- [ ] `flutter test` — zero failures
+- [x] `flutter test test/relationship_test.dart` — all relationship fetch tests pass
+- [x] `flutter test` — zero failures
 
 ---
 
@@ -73,26 +73,26 @@ Add the ability to traverse relationships and fetch related objects.
 
 ### Tasks
 
-- [ ] Task 4.1: **Red** — Write test: nested cascade (Trip → BucketListItem → SubItem if applicable) deletes the full chain.
-- [ ] Task 4.2: **Green** — Ensure cascade handler recurses correctly through multiple levels.
-- [ ] Task 4.3: **Red** — Write test: deleting a model that has no relationships proceeds normally (no crash from empty RelationshipDefinition list).
-- [ ] Task 4.4: **Green** — Guard `_enforceDeleteRules()` against descriptors with no relationships.
-- [ ] Task 4.5: **Red** — Write test: deny rule prevents delete even inside a transaction; transaction rolls back cleanly.
-- [ ] Task 4.6: **Green** — Ensure deny throws before any SQL is executed, allowing transaction rollback.
+- [x] Task 4.1: **Red** — Write test: nested cascade (Trip → BucketListItem → SubItem if applicable) deletes the full chain.
+- [x] Task 4.2: **Green** — Ensure cascade handler recurses correctly through multiple levels.
+- [x] Task 4.3: **Red** — Write test: deleting a model that has no relationships proceeds normally (no crash from empty RelationshipDefinition list).
+- [x] Task 4.4: **Green** — Guard `_enforceDeleteRules()` against descriptors with no relationships.
+- [x] Task 4.5: **Red** — Write test: deny rule prevents delete even inside a transaction; transaction rolls back cleanly.
+- [x] Task 4.6: **Green** — Ensure deny throws before any SQL is executed, allowing transaction rollback.
 
 ### Verification
 
-- [ ] `flutter test` — all tests pass, zero failures
-- [ ] No skipped tests remain in relationship_test.dart
+- [x] `flutter test` — all tests pass, zero failures
+- [x] No skipped tests remain in relationship_test.dart
 
 ---
 
 ## Final Verification
 
-- [ ] All acceptance criteria from spec met
-- [ ] `flutter test` passes with zero failures
-- [ ] All 3 previously-skipped tests now pass
-- [ ] New tests cover cascade, nullify, deny, noAction, and relationship fetching
+- [x] All acceptance criteria from spec met
+- [x] `flutter test` passes with zero failures
+- [x] All 3 previously-skipped tests now pass
+- [x] New tests cover cascade, nullify, deny, noAction, and relationship fetching
 
 ---
 
