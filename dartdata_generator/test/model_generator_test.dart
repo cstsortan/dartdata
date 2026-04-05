@@ -303,6 +303,126 @@ void main() {
       expect(output, contains("QueryField<String>('phone_number')"));
     });
   });
+
+  // -------------------------------------------------------------------------
+  // Phase 4: Relationship Emission — To-One
+  // -------------------------------------------------------------------------
+
+  group('Phase 4: to-one relationship emission', () {
+    test('4.1: optional to-one @relationship produces RelationshipDefinition and FK column',
+        () async {
+      final cls = await _resolveClass(
+        '''
+        import 'package:dartdata/src/annotations/model.dart';
+        import 'package:dartdata/src/annotations/relationship.dart';
+
+        @model
+        class LivingAccommodation {
+          final String id;
+          String address;
+          LivingAccommodation({required this.id, required this.address});
+        }
+
+        @model
+        class Trip {
+          @attribute(primaryKey: true)
+          final String id;
+          String name;
+
+          @relationship()
+          LivingAccommodation? accommodation;
+
+          Trip({required this.id, required this.name, this.accommodation});
+        }
+        ''',
+        'Trip',
+      );
+
+      final output = _generate(cls);
+
+      // Should produce a RelationshipDefinition with toOne cardinality
+      expect(output, contains('RelationshipDefinition('));
+      expect(output, contains("fieldName: 'accommodation'"));
+      expect(output, contains("relatedTable: 'living_accommodation'"));
+      expect(output, contains('cardinality: RelationshipCardinality.toOne'));
+
+      // Should NOT include accommodation as a regular column
+      // (the FK column is on this table, named accommodation_id)
+      expect(output, contains("columnName: 'accommodation_id'"));
+      expect(output, contains('ColumnType.integer'));
+    });
+
+    test('4.3: required to-one field emits non-nullable FK column', () async {
+      final cls = await _resolveClass(
+        '''
+        import 'package:dartdata/src/annotations/model.dart';
+        import 'package:dartdata/src/annotations/relationship.dart';
+
+        @model
+        class Trip {
+          final String id;
+          String name;
+          Trip({required this.id, required this.name});
+        }
+
+        @model
+        class BucketListItem {
+          @attribute(primaryKey: true)
+          final String id;
+          String title;
+
+          @relationship()
+          Trip trip;
+
+          BucketListItem({required this.id, required this.title, required this.trip});
+        }
+        ''',
+        'BucketListItem',
+      );
+
+      final output = _generate(cls);
+
+      // FK column should be non-nullable for required to-one
+      expect(
+        output,
+        contains(RegExp(r"columnName: 'trip_id'.*isNullable: false")),
+      );
+    });
+
+    test('4.5: deleteRule from annotation is stored in RelationshipDefinition',
+        () async {
+      final cls = await _resolveClass(
+        '''
+        import 'package:dartdata/src/annotations/model.dart';
+        import 'package:dartdata/src/annotations/relationship.dart';
+
+        @model
+        class Trip {
+          final String id;
+          String name;
+          Trip({required this.id, required this.name});
+        }
+
+        @model
+        class BucketListItem {
+          @attribute(primaryKey: true)
+          final String id;
+          String title;
+
+          @relationship(deleteRule: DeleteRule.cascade)
+          Trip? trip;
+
+          BucketListItem({required this.id, required this.title, this.trip});
+        }
+        ''',
+        'BucketListItem',
+      );
+
+      final output = _generate(cls);
+
+      expect(output, contains('deleteRule: DeleteRule.cascade'));
+    });
+  });
 }
 
 /// Minimal [BuildStep] implementation for testing. The generator does not
