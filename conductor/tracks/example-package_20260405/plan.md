@@ -50,15 +50,15 @@ Write integration tests for all predicate operators, sort descriptors, and pagin
 
 ### Tasks
 
-- [ ] Task 3.1: Create `test/query_test.dart` — test `equals`, `contains`, `startsWith`, `>`, `<`, `between`, `isIn`, `isNull` operators
-- [ ] Task 3.2: Add AND (`&`) and OR (`|`) combined predicate tests
-- [ ] Task 3.3: Add `orderBy` ascending/descending tests
-- [ ] Task 3.4: Add `limit` + `offset` pagination tests
-- [ ] Task 3.5: Add `fetchCount` tests (count drafts, count comments per post)
+- [x] Task 3.1: Create `test/query_test.dart` — test `equals`, `contains`, `startsWith`, `>`, `<`, `between`, `isIn`, `isNull` operators
+- [x] Task 3.2: Add AND (`&`) and OR (`|`) combined predicate tests
+- [x] Task 3.3: Add `orderBy` ascending/descending tests
+- [x] Task 3.4: Add `limit` + `offset` pagination tests
+- [x] Task 3.5: Add `fetchCount` tests (count drafts, count comments per post)
 
 ### Verification
 
-- [ ] `dart test test/query_test.dart` passes
+- [x] `flutter test test/query_test.dart` passes (18 tests)
 
 ## Phase 4: Relationship Tests
 
