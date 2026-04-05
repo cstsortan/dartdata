@@ -1,0 +1,26 @@
+name: dartdata_example
+description: >
+  Integration test package for dartdata — exercises every feature against a
+  real SQLite database.
+version: 0.0.1
+publish_to: none
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+  flutter: '>=3.19.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  dartdata:
+    path: ../dartdata
+  sqlite3: ^2.4.0
+  uuid: ^4.3.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  dartdata_generator:
+    path: ../dartdata_generator
+  build_runner: ^2.4.0
+  source_gen: ^1.5.0

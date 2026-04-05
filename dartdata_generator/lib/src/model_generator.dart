@@ -2,6 +2,7 @@ import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/nullability_suffix.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:build/build.dart';
+import 'package:dartdata/src/annotations/model.dart';
 import 'package:dartdata/src/annotations/relationship.dart';
 import 'package:dartdata/src/schema/schema.dart';
 import 'package:source_gen/source_gen.dart';
@@ -11,7 +12,7 @@ import 'package:source_gen/source_gen.dart';
 ///   - A `$ClassName` descriptor class with [QueryField] static fields.
 ///   - A [ModelDescriptor] implementation registered with the [Schema].
 ///   - `toMap()` / `fromMap()` extensions on the model class.
-class ModelGenerator extends GeneratorForAnnotation<_Model> {
+class ModelGenerator extends GeneratorForAnnotation<Model> {
   @override
   String generateForAnnotatedElement(
     Element element,
@@ -67,6 +68,9 @@ class _${className}Descriptor extends ModelDescriptor {
   String get modelClassName => '$className';
 
   @override
+  Type get modelType => $className;
+
+  @override
   List<ColumnDefinition> get columns => [
 ${fields.map((f) => "    ${f.columnDefinition},").join('\n')}
 ${fkColumns.map((c) => "    $c,").join('\n')}
@@ -88,19 +92,26 @@ ${junctionTables.isNotEmpty ? '''
 ${junctionTables.map((jt) => "    $jt,").join('\n')}
   ];''' : ''}
 
+  @override
   $className fromMap(Map<String, Object?> row) {
     return $className(
 ${fields.map((f) => "      ${f.name}: ${f.fromMapExpression('row')},").join('\n')}
     );
   }
+
+  @override
+  Map<String, Object?> toMap(Object model) {
+    final m = model as $className;
+    return {
+${fields.map((f) => "      '${f.columnName}': ${f.toMapExpressionFor('m')},").join('\n')}
+${relationships.where((r) => r.cardinality == RelationshipCardinality.toOne).map((r) => "      '${r.fkColumnName}': m.${r.fieldName}${r.isNullable ? '?' : ''}.id,").join('\n')}
+    };
+  }
+${_generateGetExternalFile(className, fields)}
 }
 
 extension ${className}Persistence on $className {
   static final ModelDescriptor descriptor = _${className}Descriptor();
-
-  Map<String, Object?> toMap() => {
-${fields.map((f) => "    '${f.columnName}': ${f.toMapExpression},").join('\n')}
-  };
 }
 ''';
   }
@@ -126,6 +137,26 @@ ${fields.map((f) => "    '${f.columnName}': ${f.toMapExpression},").join('\n')}
         .toList();
   }
 
+  static String _generateGetExternalFile(
+      String className, List<_FieldInfo> fields) {
+    final extFields = fields.where((f) => f.isExternalFile).toList();
+    if (extFields.isEmpty) return '';
+    final cases = extFields
+        .map((f) =>
+            "      case '${f.columnName}': return m.${f.name};")
+        .join('\n');
+    return '''
+
+  @override
+  ExternalFile? getExternalFile(Object model, String fieldName) {
+    final m = model as $className;
+    switch (fieldName) {
+$cases
+      default: return null;
+    }
+  }''';
+  }
+
   String _toSnakeCase(String name) {
     return name
         .replaceAllMapped(
@@ -134,8 +165,6 @@ ${fields.map((f) => "    '${f.columnName}': ${f.toMapExpression},").join('\n')}
   }
 }
 
-// Shim so we can reference the private _Model const from annotations.
-typedef _Model = dynamic;
 
 class _FieldInfo {
   final String name;
@@ -224,7 +253,21 @@ class _FieldInfo {
       }
       return "ExternalFile.fromManagedPath($row['$columnName'] as String)";
     }
-    return switch (dartType.replaceAll('?', '').trim()) {
+    final baseType = dartType.replaceAll('?', '').trim();
+    if (isNullable) {
+      return switch (baseType) {
+        'DateTime' =>
+          "$row['$columnName'] != null "
+              "? DateTime.fromMillisecondsSinceEpoch($row['$columnName'] as int, isUtc: true) "
+              ": null",
+        'bool' =>
+          "$row['$columnName'] != null "
+              "? ($row['$columnName'] as int) != 0 "
+              ": null",
+        _ => "$row['$columnName'] as $dartType",
+      };
+    }
+    return switch (baseType) {
       'DateTime' =>
         "DateTime.fromMillisecondsSinceEpoch($row['$columnName'] as int, isUtc: true)",
       'bool' => "($row['$columnName'] as int) != 0",
@@ -236,8 +279,22 @@ class _FieldInfo {
     if (isExternalFile) return 'null'; // replaced by _persistExternalFiles
     return switch (dartType.replaceAll('?', '').trim()) {
       'DateTime' => '$name${isNullable ? '?' : ''}.toUtc().millisecondsSinceEpoch',
-      'bool' => '$name ? 1 : 0',
+      'bool' => isNullable
+          ? '$name != null ? ($name! ? 1 : 0) : null'
+          : '$name ? 1 : 0',
       _ => name,
+    };
+  }
+
+  /// Like [toMapExpression] but prefixed with a model variable name.
+  String toMapExpressionFor(String varName) {
+    if (isExternalFile) return 'null'; // replaced by _persistExternalFiles
+    return switch (dartType.replaceAll('?', '').trim()) {
+      'DateTime' => '$varName.$name${isNullable ? '?' : ''}.toUtc().millisecondsSinceEpoch',
+      'bool' => isNullable
+          ? '$varName.$name != null ? ($varName.$name! ? 1 : 0) : null'
+          : '$varName.$name ? 1 : 0',
+      _ => '$varName.$name',
     };
   }
 
@@ -334,7 +391,7 @@ class _RelationshipInfo {
 
   /// Generates a `ColumnDefinition(...)` string for the FK column.
   String get fkColumnDefinition {
-    return "ColumnDefinition(columnName: '$fkColumnName', type: ColumnType.integer, "
+    return "ColumnDefinition(columnName: '$fkColumnName', type: ColumnType.text, "
         "isPrimaryKey: false, isUnique: false, isIndexed: false, "
         "isNullable: $isNullable)";
   }

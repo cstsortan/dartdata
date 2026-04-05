@@ -2,7 +2,6 @@ builders:
   dartdata:
     import: "package:dartdata_generator/dartdata_generator.dart"
     builder_factories: ["dartdataBuilder"]
-    build_extensions: { ".dart": [".g.dart"] }
+    build_extensions: { ".dart": [".dartdata.g.part"] }
     auto_apply: dependents
-    build_to: source
     applies_builders: ["source_gen|combining_builder"]

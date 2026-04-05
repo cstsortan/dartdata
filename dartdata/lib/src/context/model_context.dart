@@ -108,7 +108,7 @@ class ModelContext {
   /// Execute a single pending operation against the database.
   Future<void> _execute(_PendingOperation op, Database db) async {
     final descriptor = _descriptorFor(op.model);
-    final map = (op.model as dynamic).toMap() as Map<String, Object?>;
+    final map = descriptor.toMap(op.model);
     final templates = _sqlTemplates[descriptor.tableName]!;
 
     // Validate that toMap() keys match the descriptor's declared columns.
@@ -201,7 +201,8 @@ class ModelContext {
     );
 
     return rows.map((row) {
-      final obj = descriptor.fromMap(row) as T;
+      final resolved = _resolveExternalFilePaths(row, descriptor);
+      final obj = descriptor.fromMap(resolved) as T;
       final id = row['id'] as String;
       final zOpt = row['z_opt'] as int;
       _versions['${descriptor.tableName}:$id'] = zOpt;
@@ -231,7 +232,8 @@ class ModelContext {
     final row = rows.first;
     final zOpt = row['z_opt'] as int;
     _versions['${descriptor.tableName}:$id'] = zOpt;
-    return descriptor.fromMap(row) as T;
+    final resolved = _resolveExternalFilePaths(row, descriptor);
+    return descriptor.fromMap(resolved) as T;
   }
 
   /// Fetch related objects through a declared relationship.
@@ -242,7 +244,7 @@ class ModelContext {
   /// Returns the child objects whose FK references [model].
   Future<List<T>> fetchRelated<T>(Object model, String relationshipField) async {
     final parentDescriptor = _descriptorFor(model);
-    final parentMap = (model as dynamic).toMap() as Map<String, Object?>;
+    final parentMap = parentDescriptor.toMap(model);
     final parentId = parentMap['id'] as String;
 
     // Find the relationship on the parent descriptor.
@@ -270,7 +272,10 @@ class ModelContext {
       [parentId],
     );
 
-    return rows.map((row) => childDescriptor.fromMap(row) as T).toList();
+    return rows.map((row) {
+      final resolved = _resolveExternalFilePaths(row, childDescriptor);
+      return childDescriptor.fromMap(resolved) as T;
+    }).toList();
   }
 
   /// Count objects matching [query] without fetching them.
@@ -356,7 +361,7 @@ class ModelContext {
   ) async {
     final id = map['id'] as String;
     for (final fieldName in descriptor.externalFileFields) {
-      final file = (model as dynamic).getExternalFile(fieldName) as ExternalFile?;
+      final file = descriptor.getExternalFile(model, fieldName);
       if (file == null || !file.isStaged) continue;
       final destination = _blobFile(id, fieldName);
       await file.persistTo(destination);
@@ -368,12 +373,30 @@ class ModelContext {
   Future<void> _deleteExternalFiles(
       Object model, ModelDescriptor descriptor) async {
     for (final fieldName in descriptor.externalFileFields) {
-      final file =
-          (model as dynamic).getExternalFile(fieldName) as ExternalFile?;
+      final file = descriptor.getExternalFile(model, fieldName);
       if (file == null) continue;
       file.delete();
       await file.removeFromDisk();
     }
+  }
+
+  /// Resolve ExternalFile UUID columns in [row] to full blob directory paths
+  /// before passing to `fromMap`. The database stores just the UUID filename;
+  /// `fromManagedPath` needs the full filesystem path.
+  Map<String, Object?> _resolveExternalFilePaths(
+    Map<String, Object?> row,
+    ModelDescriptor descriptor,
+  ) {
+    if (descriptor.externalFileFields.isEmpty) return row;
+    final resolved = Map<String, Object?>.of(row);
+    for (final fieldName in descriptor.externalFileFields) {
+      final uuid = resolved[fieldName];
+      if (uuid is String) {
+        resolved[fieldName] =
+            '${container.blobDirectory.path}/$uuid';
+      }
+    }
+    return resolved;
   }
 
   static final _safePathSegment = RegExp(r'^[a-zA-Z0-9_\-]+$');
@@ -411,7 +434,7 @@ class ModelContext {
       if (op.type != _OperationType.delete) continue;
 
       final parentDescriptor = _descriptorFor(op.model);
-      final parentMap = (op.model as dynamic).toMap() as Map<String, Object?>;
+      final parentMap = parentDescriptor.toMap(op.model);
       final parentId = parentMap['id'] as String;
 
       final children = _reverseRelationships[parentDescriptor.tableName];
@@ -452,7 +475,8 @@ class ModelContext {
     );
 
     for (final row in rows) {
-      final childModel = childDescriptor.fromMap(row);
+      final resolved = _resolveExternalFilePaths(row, childDescriptor);
+      final childModel = childDescriptor.fromMap(resolved);
       _pending.add(_PendingOperation(_OperationType.delete, childModel));
     }
   }
