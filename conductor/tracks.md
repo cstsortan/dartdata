@@ -6,7 +6,7 @@
 | | | | | |
 | | | **Tier 1 — Core Runtime** | | |
 | [x] | relationship-enforcement_20260405 | Relationship Enforcement & Delete Rules | 2026-04-05 | 2026-04-05 |
-| [ ] | schema-migration_20260405 | Schema Migration | 2026-04-05 | 2026-04-05 |
+| [x] | schema-migration_20260405 | Schema Migration | 2026-04-05 | 2026-04-05 |
 | [ ] | optimistic-locking_20260405 | z_opt Optimistic Locking | 2026-04-05 | 2026-04-05 |
 | | | | | |
 | | | **Tier 2 — Code Generator** | | |

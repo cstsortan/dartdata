@@ -17,16 +17,16 @@ Create a deterministic hash of the schema that can be compared across opens.
 
 ### Tasks
 
-- [ ] Task 1.1: **Red** — Write test: `Schema.fingerprint` returns a consistent hash string for the same schema definition.
-- [ ] Task 1.2: **Red** — Write test: `Schema.fingerprint` changes when a column is added to a descriptor.
-- [ ] Task 1.3: **Green** — Implement `Schema.fingerprint` by sorting all `(tableName, columnName, type, isPK, isUnique, isNullable)` tuples and hashing with SHA-256.
-- [ ] Task 1.4: **Red** — Write test: `ModelContainer.create()` stores the fingerprint in `_schema_version` table on first open.
-- [ ] Task 1.5: **Green** — Store the fingerprint during `_applySchema()` using `INSERT OR REPLACE INTO _schema_version`.
+- [x] Task 1.1: **Red** — Write test: `Schema.fingerprint` returns a consistent hash string for the same schema definition.
+- [x] Task 1.2: **Red** — Write test: `Schema.fingerprint` changes when a column is added to a descriptor.
+- [x] Task 1.3: **Green** — Implement `Schema.fingerprint` by sorting all `(tableName, columnName, type, isPK, isUnique, isNullable)` tuples and hashing with SHA-256.
+- [x] Task 1.4: **Red** — Write test: `ModelContainer.create()` stores the fingerprint in `_schema_version` table on first open.
+- [x] Task 1.5: **Green** — Store the fingerprint during `_applySchema()` using `INSERT OR REPLACE INTO _schema_version`.
 
 ### Verification
 
-- [ ] `flutter test` — all tests pass
-- [ ] Opening a new container writes a fingerprint row to `_schema_version`
+- [x] `flutter test` — all tests pass
+- [x] Opening a new container writes a fingerprint row to `_schema_version`
 
 ---
 
@@ -36,19 +36,19 @@ Detect new tables and columns and add them without data loss.
 
 ### Tasks
 
-- [ ] Task 2.1: **Red** — Write test: open container with schema V1, close, reopen with schema V2 (extra column) using `automatic` policy — new column exists, old data preserved.
-- [ ] Task 2.2: **Red** — Write test: open container with schema V1, reopen with V2 (extra table) — new table is created.
-- [ ] Task 2.3: **Green** — Implement `_migrateAutomatic()`: for each table in schema, `PRAGMA table_info()` to get existing columns, `ALTER TABLE ADD COLUMN` for missing ones. Create entirely new tables.
-- [ ] Task 2.4: **Red** — Write test: removed column in schema V2 does NOT drop the existing column (additive only).
-- [ ] Task 2.5: **Green** — Ensure `_migrateAutomatic()` only adds, never drops.
-- [ ] Task 2.6: **Red** — Write test: after automatic migration, the fingerprint in `_schema_version` is updated to V2.
-- [ ] Task 2.7: **Green** — Update the stored fingerprint after successful migration.
+- [x] Task 2.1: **Red** — Write test: open container with schema V1, close, reopen with schema V2 (extra column) using `automatic` policy — new column exists, old data preserved.
+- [x] Task 2.2: **Red** — Write test: open container with schema V1, reopen with V2 (extra table) — new table is created.
+- [x] Task 2.3: **Green** — Implement `_migrateAutomatic()`: for each table in schema, `PRAGMA table_info()` to get existing columns, `ALTER TABLE ADD COLUMN` for missing ones. Create entirely new tables.
+- [x] Task 2.4: **Red** — Write test: removed column in schema V2 does NOT drop the existing column (additive only).
+- [x] Task 2.5: **Green** — Ensure `_migrateAutomatic()` only adds, never drops.
+- [x] Task 2.6: **Red** — Write test: after automatic migration, the fingerprint in `_schema_version` is updated to V2.
+- [x] Task 2.7: **Green** — Update the stored fingerprint after successful migration.
 
 ### Verification
 
-- [ ] All automatic migration tests pass
-- [ ] Existing data survives schema additions
-- [ ] `flutter test` — zero failures
+- [x] All automatic migration tests pass
+- [x] Existing data survives schema additions
+- [x] `flutter test` — zero failures
 
 ---
 
@@ -56,28 +56,28 @@ Detect new tables and columns and add them without data loss.
 
 ### Tasks
 
-- [ ] Task 3.1: **Red** — Write test: open with `MigrationPolicy.none` and a changed schema throws `SchemaMismatchError`.
-- [ ] Task 3.2: **Green** — Implement `_migrateNone()`: compare fingerprints, throw `SchemaMismatchError` with descriptive message if different.
-- [ ] Task 3.3: **Red** — Write test: open with `MigrationPolicy.none` and unchanged schema succeeds silently.
-- [ ] Task 3.4: **Green** — Skip migration when fingerprints match.
-- [ ] Task 3.5: **Red** — Write test: open with `resetOnConflict` and changed schema drops all model tables and recreates; old data is gone.
-- [ ] Task 3.6: **Green** — Implement `_migrateResetOnConflict()`: `DROP TABLE IF EXISTS` for each model table, then call `_createTableIfNeeded()` for each.
-- [ ] Task 3.7: **Red** — Write test: `resetOnConflict` with unchanged schema does not drop tables.
-- [ ] Task 3.8: **Green** — Only reset when fingerprints actually differ.
+- [x] Task 3.1: **Red** — Write test: open with `MigrationPolicy.none` and a changed schema throws `SchemaMismatchError`.
+- [x] Task 3.2: **Green** — Implement `_migrateNone()`: compare fingerprints, throw `SchemaMismatchError` with descriptive message if different.
+- [x] Task 3.3: **Red** — Write test: open with `MigrationPolicy.none` and unchanged schema succeeds silently.
+- [x] Task 3.4: **Green** — Skip migration when fingerprints match.
+- [x] Task 3.5: **Red** — Write test: open with `resetOnConflict` and changed schema drops all model tables and recreates; old data is gone.
+- [x] Task 3.6: **Green** — Implement `_migrateResetOnConflict()`: `DROP TABLE IF EXISTS` for each model table, then call `_createTableIfNeeded()` for each.
+- [x] Task 3.7: **Red** — Write test: `resetOnConflict` with unchanged schema does not drop tables.
+- [x] Task 3.8: **Green** — Only reset when fingerprints actually differ.
 
 ### Verification
 
-- [ ] `flutter test` — all tests pass, zero failures
-- [ ] Each policy behaves correctly for both matching and mismatching schemas
+- [x] `flutter test` — all tests pass, zero failures
+- [x] Each policy behaves correctly for both matching and mismatching schemas
 
 ---
 
 ## Final Verification
 
-- [ ] All acceptance criteria from spec met
-- [ ] `flutter test` passes with zero failures
-- [ ] Schema fingerprint is computed, stored, and compared correctly
-- [ ] All three MigrationPolicy modes tested and working
+- [x] All acceptance criteria from spec met
+- [x] `flutter test` passes with zero failures
+- [x] Schema fingerprint is computed, stored, and compared correctly
+- [x] All three MigrationPolicy modes tested and working
 
 ---
 
