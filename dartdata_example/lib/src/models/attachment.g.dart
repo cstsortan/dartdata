@@ -57,7 +57,7 @@ class _AttachmentDescriptor extends ModelDescriptor {
             isNullable: true),
         ColumnDefinition(
             columnName: 'post_id',
-            type: ColumnType.text,
+            type: ColumnType.integer,
             isPrimaryKey: false,
             isUnique: false,
             isIndexed: false,
@@ -99,7 +99,7 @@ class _AttachmentDescriptor extends ModelDescriptor {
       'id': m.id,
       'filename': m.filename,
       'data': null,
-      'post_id': m.post?.id,
+      'post_id': null, // FK resolved by ModelContext via getRelationshipIds
     };
   }
 
@@ -112,6 +112,14 @@ class _AttachmentDescriptor extends ModelDescriptor {
       default:
         return null;
     }
+  }
+
+  @override
+  Map<String, String?> getRelationshipIds(Object model) {
+    final m = model as Attachment;
+    return {
+      'post_id': m.post?.id,
+    };
   }
 }
 

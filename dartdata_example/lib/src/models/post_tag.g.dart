@@ -50,14 +50,14 @@ class _PostTagDescriptor extends ModelDescriptor {
             isNullable: true),
         ColumnDefinition(
             columnName: 'post_id',
-            type: ColumnType.text,
+            type: ColumnType.integer,
             isPrimaryKey: false,
             isUnique: false,
             isIndexed: false,
             isNullable: true),
         ColumnDefinition(
             columnName: 'tag_id',
-            type: ColumnType.text,
+            type: ColumnType.integer,
             isPrimaryKey: false,
             isUnique: false,
             isIndexed: false,
@@ -104,6 +104,15 @@ class _PostTagDescriptor extends ModelDescriptor {
     return {
       'id': m.id,
       'pinned_at': m.pinnedAt?.toUtc().millisecondsSinceEpoch,
+      'post_id': null, // FK resolved by ModelContext via getRelationshipIds
+      'tag_id': null, // FK resolved by ModelContext via getRelationshipIds
+    };
+  }
+
+  @override
+  Map<String, String?> getRelationshipIds(Object model) {
+    final m = model as PostTag;
+    return {
       'post_id': m.post?.id,
       'tag_id': m.tag?.id,
     };

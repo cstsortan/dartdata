@@ -114,30 +114,30 @@ Update the hand-committed `.g.dart` files and tests in `dartdata_example` to mat
 
 ### Tasks
 
-- [ ] Task 6.1: Update `attachment.g.dart` — integer FK, null in toMap, getRelationshipIds
-- [ ] Task 6.2: Update `category.g.dart` — integer FK, null in toMap, getRelationshipIds
-- [ ] Task 6.3: Update `comment.g.dart` — integer FK, null in toMap, getRelationshipIds
-- [ ] Task 6.4: Update `post.g.dart` — integer FK, null in toMap, getRelationshipIds
-- [ ] Task 6.5: Update `post_tag.g.dart` — integer FK (both post_id and tag_id), null in toMap, getRelationshipIds
-- [ ] Task 6.6: Verify compilation with `dart analyze`
-- [ ] Task 6.7: Update `dartdata_example/test/relationship_test.dart` — expect integer z_pk in raw SQL assertions
-- [ ] Task 6.8: Update `dartdata_example/test/crud_test.dart` — parent-before-child save ordering, integer FK expectations
-- [ ] Task 6.9: Update `dartdata_example/test/container_test.dart` — update column type expectations if any
-- [ ] Task 6.10: Run `dartdata_example` test suite — verify all pass
+- [x] Task 6.1: Update `attachment.g.dart` — integer FK, null in toMap, getRelationshipIds
+- [x] Task 6.2: Update `category.g.dart` — integer FK, null in toMap, getRelationshipIds
+- [x] Task 6.3: Update `comment.g.dart` — integer FK, null in toMap, getRelationshipIds
+- [x] Task 6.4: Update `post.g.dart` — integer FK, null in toMap, getRelationshipIds
+- [x] Task 6.5: Update `post_tag.g.dart` — integer FK (both post_id and tag_id), null in toMap, getRelationshipIds
+- [x] Task 6.6: Verify compilation with `dart analyze` — no issues found
+- [x] Task 6.7: Update `dartdata_example/test/relationship_test.dart` — expect integer z_pk in raw SQL assertions
+- [x] Task 6.8: N/A — crud_test.dart has no FK assertions to update
+- [x] Task 6.9: N/A — container_test.dart only checks column existence, not type
+- [x] Task 6.10: Run `dartdata_example` test suite — 67/67 pass
 
 ### Verification
 
-- [ ] All `.g.dart` files use integer FK columns
-- [ ] All example tests pass
+- [x] All `.g.dart` files use integer FK columns
+- [x] All example tests pass (67/67)
 
 ## Final Verification
 
-- [ ] All acceptance criteria met
-- [ ] `dartdata` tests passing (`flutter test` — zero failures)
-- [ ] `dartdata_example` tests passing (`dart test` — zero failures)
-- [ ] No UUID strings stored in FK columns (verified via raw SQL spot-check)
-- [ ] Generator output matches hand-written test models
-- [ ] Ready for review
+- [x] All acceptance criteria met
+- [x] `dartdata` tests passing (`flutter test` — 153/153 pass)
+- [x] `dartdata_example` tests passing (`flutter test` — 67/67 pass)
+- [x] No UUID strings stored in FK columns (verified via raw SQL spot-check in tests)
+- [x] Generator output matches hand-written test models
+- [x] Ready for review
 
 ---
 
