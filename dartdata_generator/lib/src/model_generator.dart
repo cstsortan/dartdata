@@ -1,6 +1,7 @@
 import 'package:analyzer/dart/element/element.dart';
 import 'package:build/build.dart';
-import 'package:dartdata/dartdata.dart';
+import 'package:dartdata/src/annotations/model.dart';
+import 'package:dartdata/src/schema/schema.dart';
 import 'package:source_gen/source_gen.dart';
 
 /// Reads `@model` annotations and generates `.g.dart` files containing:
@@ -121,19 +122,45 @@ class _FieldInfo {
   });
 
   factory _FieldInfo.from(FieldElement field) {
-    // TODO: read @attribute annotation values via ConstantReader
-    final colName = _toSnakeCase(field.name);
     final dartType = field.type.getDisplayString(withNullability: true);
     final isExternal = dartType.contains('ExternalFile');
+
+    // Read @attribute annotation if present.
+    var isPK = false;
+    var isUniq = false;
+    var isIdx = false;
+    var isTrans = false;
+    String? customColumnName;
+
+    final attrAnnotation = _attributeChecker.firstAnnotationOf(field);
+    if (attrAnnotation != null) {
+      final reader = ConstantReader(attrAnnotation);
+      isPK = reader.read('primaryKey').boolValue;
+      isUniq = reader.read('unique').boolValue;
+      isIdx = reader.read('indexed').boolValue;
+      isTrans = reader.read('transient').boolValue;
+      final colNameReader = reader.read('columnName');
+      if (!colNameReader.isNull) {
+        customColumnName = colNameReader.stringValue;
+      }
+    }
+
+    final colName = customColumnName ?? _toSnakeCase(field.name);
 
     return _FieldInfo(
       name: field.name,
       columnName: colName,
       dartType: dartType,
+      isPrimaryKey: isPK,
+      isUnique: isUniq,
+      isIndexed: isIdx,
+      isTransient: isTrans,
       isNullable: field.type.nullabilitySuffix.name == 'question',
       isExternalFile: isExternal,
     );
   }
+
+  static const _attributeChecker = TypeChecker.fromRuntime(attribute);
 
   String get queryFieldDeclaration {
     final valueType = _queryFieldType();
@@ -141,7 +168,7 @@ class _FieldInfo {
   }
 
   String get columnDefinition {
-    final colType = _columnType();
+    final colType = _columnTypeName();
     return "ColumnDefinition(columnName: '$columnName', type: ColumnType.$colType, "
         "isPrimaryKey: $isPrimaryKey, isUnique: $isUnique, isIndexed: $isIndexed, "
         "isNullable: $isNullable)";
@@ -178,12 +205,12 @@ class _FieldInfo {
         _ => 'String',
       };
 
-  ColumnType _columnType() => switch (dartType.replaceAll('?', '').trim()) {
-        'int' => ColumnType.integer,
-        'double' => ColumnType.real,
-        'bool' => ColumnType.integer,
-        'DateTime' => ColumnType.integer,
-        _ => ColumnType.text,
+  String _columnTypeName() => switch (dartType.replaceAll('?', '').trim()) {
+        'int' => 'integer',
+        'double' => 'real',
+        'bool' => 'integer',
+        'DateTime' => 'integer',
+        _ => 'text',
       };
 
   static String _toSnakeCase(String name) {
