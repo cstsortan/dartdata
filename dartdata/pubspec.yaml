@@ -19,6 +19,8 @@ dependencies:
   path: ^1.9.0
   # UUID generation for primary keys and blob filenames
   uuid: ^4.3.0
+  # SHA-256 hashing for schema fingerprinting
+  crypto: ^3.0.0
 
 dev_dependencies:
   flutter_test:

@@ -87,6 +87,33 @@ class ModelContainer {
     return container;
   }
 
+  /// Opens a [ModelContainer] against an already-open [Database].
+  ///
+  /// Used for testing migration scenarios where the same in-memory database
+  /// must be re-opened with a different schema.
+  /// Opens a [ModelContainer] against an already-open [Database].
+  ///
+  /// Used for testing migration scenarios where the same in-memory database
+  /// must be re-opened with a different schema. The blob directory defaults
+  /// to a temporary directory since the DB is already open.
+  static Future<ModelContainer> createFromDatabase({
+    required Schema schema,
+    required Database db,
+    ModelConfiguration configuration = const ModelConfiguration(),
+  }) async {
+    final blobDir = Directory.systemTemp.createTempSync('dartdata_blobs_');
+
+    final container = ModelContainer._(
+      schema: schema,
+      configuration: configuration,
+      db: db,
+      blobDirectory: blobDir,
+    );
+
+    await container._applySchema();
+    return container;
+  }
+
   static Future<Database> _openDatabase(ModelConfiguration config) async {
     if (config.isInMemory) {
       final db = sqlite3.openInMemory();
@@ -142,7 +169,98 @@ class ModelContainer {
       )
     ''');
 
-    // Create tables for each registered model.
+    final currentFingerprint = schema.fingerprint;
+
+    // Check for an existing fingerprint.
+    final existing = db.select(
+      "SELECT z_fingerprint FROM _schema_version WHERE z_name = 'schema'",
+    );
+
+    if (existing.isEmpty) {
+      // First open — create all tables and store the fingerprint.
+      for (final descriptor in schema.descriptors) {
+        _createTableIfNeeded(descriptor);
+      }
+      _storeFingerprint(currentFingerprint);
+      return;
+    }
+
+    final storedFingerprint = existing.first['z_fingerprint'] as String;
+    final schemaChanged = storedFingerprint != currentFingerprint;
+
+    switch (configuration.migrationPolicy) {
+      case MigrationPolicy.automatic:
+        if (schemaChanged) {
+          _migrateAutomatic();
+          _storeFingerprint(currentFingerprint);
+        }
+        // Ensure any brand-new tables exist even if fingerprint matched
+        // (shouldn't happen, but defensive).
+        for (final descriptor in schema.descriptors) {
+          _createTableIfNeeded(descriptor);
+        }
+      case MigrationPolicy.none:
+        if (schemaChanged) {
+          throw SchemaMismatchError(
+            'The on-disk schema fingerprint ($storedFingerprint) does not '
+            'match the current schema ($currentFingerprint). '
+            'Use MigrationPolicy.automatic or resetOnConflict to handle '
+            'schema changes.',
+          );
+        }
+      case MigrationPolicy.resetOnConflict:
+        if (schemaChanged) {
+          _migrateResetOnConflict();
+          _storeFingerprint(currentFingerprint);
+        }
+    }
+  }
+
+  void _storeFingerprint(String fingerprint) {
+    db.execute(
+      "INSERT OR REPLACE INTO _schema_version (z_name, z_fingerprint, z_version) "
+      "VALUES ('schema', '$fingerprint', 1)",
+    );
+  }
+
+  void _migrateAutomatic() {
+    for (final descriptor in schema.descriptors) {
+      // Check if table exists.
+      final tableExists = db
+          .select(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='${descriptor.tableName}'",
+          )
+          .isNotEmpty;
+
+      if (!tableExists) {
+        _createTableIfNeeded(descriptor);
+        continue;
+      }
+
+      // Get existing columns.
+      final existingCols = db
+          .select("PRAGMA table_info(${descriptor.tableName})")
+          .map((r) => r['name'] as String)
+          .toSet();
+
+      // Add missing columns (additive only — never drop).
+      for (final col in descriptor.columns) {
+        if (!existingCols.contains(col.columnName)) {
+          final sqlType = _sqlType(col.type);
+          db.execute(
+            "ALTER TABLE ${descriptor.tableName} ADD COLUMN ${col.columnName} $sqlType",
+          );
+        }
+      }
+    }
+  }
+
+  void _migrateResetOnConflict() {
+    // Drop all model tables.
+    for (final descriptor in schema.descriptors) {
+      db.execute("DROP TABLE IF EXISTS ${descriptor.tableName}");
+    }
+    // Recreate all tables.
     for (final descriptor in schema.descriptors) {
       _createTableIfNeeded(descriptor);
     }
