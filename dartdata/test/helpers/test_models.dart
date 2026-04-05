@@ -64,7 +64,22 @@ class TripDescriptor extends ModelDescriptor {
       ];
 
   @override
-  List<RelationshipDefinition> get relationships => [];
+  List<RelationshipDefinition> get relationships => [
+        const RelationshipDefinition(
+          fieldName: 'bucketList',
+          relatedTable: 'bucket_list_item',
+          cardinality: RelationshipCardinality.toMany,
+          inverseFieldName: 'trip',
+          deleteRule: 'cascade',
+        ),
+        const RelationshipDefinition(
+          fieldName: 'accommodation',
+          relatedTable: 'living_accommodation',
+          cardinality: RelationshipCardinality.toOne,
+          inverseFieldName: 'trip',
+          deleteRule: 'nullify',
+        ),
+      ];
 
   @override
   List<String> get externalFileFields => [];

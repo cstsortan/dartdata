@@ -165,6 +165,47 @@ class ModelContext {
     return (descriptor as dynamic).fromMap(rows.first) as T;
   }
 
+  /// Fetch related objects through a declared relationship.
+  ///
+  /// [model] is the parent object, [relationshipField] is the field name
+  /// declared on the parent's descriptor (e.g., 'bucketList' on Trip).
+  ///
+  /// Returns the child objects whose FK references [model].
+  Future<List<T>> fetchRelated<T>(Object model, String relationshipField) async {
+    final parentDescriptor = _descriptorFor(model);
+    final parentMap = (model as dynamic).toMap() as Map<String, Object?>;
+    final parentId = parentMap['id'] as String;
+
+    // Find the relationship on the parent descriptor.
+    final parentRel = parentDescriptor.relationships.firstWhere(
+      (r) => r.fieldName == relationshipField,
+      orElse: () => throw StateError(
+        'No relationship "$relationshipField" on ${parentDescriptor.modelClassName}',
+      ),
+    );
+
+    // Find the child descriptor for the related table.
+    final childDescriptor = container.schema.descriptors.firstWhere(
+      (d) => d.tableName == parentRel.relatedTable,
+      orElse: () => throw StateError(
+        'No descriptor for table "${parentRel.relatedTable}"',
+      ),
+    );
+
+    // The FK column on the child table is named after the inverse field + '_id'.
+    final inverseField = parentRel.inverseFieldName ?? parentDescriptor.tableName;
+    final fkColumn = '${inverseField}_id';
+
+    final rows = container.db.select(
+      'SELECT * FROM ${childDescriptor.tableName} WHERE $fkColumn = ?',
+      [parentId],
+    );
+
+    return rows
+        .map((row) => (childDescriptor as dynamic).fromMap(row) as T)
+        .toList();
+  }
+
   /// Count objects matching [query] without fetching them.
   Future<int> fetchCount<T>(Query<T> query) async {
     final descriptor = _descriptorForType<T>();
@@ -284,6 +325,12 @@ class ModelContext {
           if (rel.relatedTable != parentDescriptor.tableName) continue;
 
           final fkColumn = '${rel.fieldName}_id';
+
+          // Only process child-side relationships (where the FK column
+          // exists on this descriptor's table). Skip parent-side entries.
+          if (!childDescriptor.columns.any((c) => c.columnName == fkColumn)) {
+            continue;
+          }
 
           switch (rel.deleteRule) {
             case 'cascade':

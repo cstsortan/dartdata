@@ -285,4 +285,67 @@ void main() {
       expect(rows.first['trip_id'], equals('trip-opt'));
     });
   });
+
+  // ---------------------------------------------------------------------------
+  // Relationship fetching — fetchRelated
+  // ---------------------------------------------------------------------------
+  group('fetchRelated', () {
+    test('returns all BucketListItems related to a Trip', () async {
+      final trip = Trip(
+        id: 'trip-fetch',
+        name: 'Fetch Trip',
+        destination: 'A',
+        startDate: DateTime.utc(2026, 1, 1),
+        endDate: DateTime.utc(2026, 1, 2),
+      );
+      context.insert(trip);
+      context.insert(BucketListItem(
+          id: 'bli-f1', title: 'Item 1', tripId: 'trip-fetch'));
+      context.insert(BucketListItem(
+          id: 'bli-f2', title: 'Item 2', tripId: 'trip-fetch'));
+      context.insert(BucketListItem(
+          id: 'bli-other', title: 'Other Item', tripId: 'other-trip'));
+      await context.save();
+
+      final items = await context.fetchRelated<BucketListItem>(
+          trip, 'bucketList');
+      expect(items.length, equals(2));
+      expect(items.map((i) => i.id).toSet(), equals({'bli-f1', 'bli-f2'}));
+    });
+
+    test('returns single LivingAccommodation related to a Trip', () async {
+      final trip = Trip(
+        id: 'trip-acc',
+        name: 'Acc Trip',
+        destination: 'B',
+        startDate: DateTime.utc(2026, 1, 1),
+        endDate: DateTime.utc(2026, 1, 2),
+      );
+      context.insert(trip);
+      context.insert(LivingAccommodation(
+          id: 'acc-f1', address: '10 Main St', tripId: 'trip-acc'));
+      await context.save();
+
+      final accs = await context.fetchRelated<LivingAccommodation>(
+          trip, 'accommodation');
+      expect(accs.length, equals(1));
+      expect(accs.first.id, equals('acc-f1'));
+    });
+
+    test('returns empty list when no children exist', () async {
+      final trip = Trip(
+        id: 'trip-empty',
+        name: 'Empty Trip',
+        destination: 'C',
+        startDate: DateTime.utc(2026, 1, 1),
+        endDate: DateTime.utc(2026, 1, 2),
+      );
+      context.insert(trip);
+      await context.save();
+
+      final items = await context.fetchRelated<BucketListItem>(
+          trip, 'bucketList');
+      expect(items, isEmpty);
+    });
+  });
 }
