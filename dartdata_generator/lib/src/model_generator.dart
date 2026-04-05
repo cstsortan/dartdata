@@ -217,9 +217,12 @@ class _FieldInfo {
 
   String fromMapExpression(String row) {
     if (isExternalFile) {
-      return "$row['$columnName'] != null "
-          "? ExternalFile.fromManagedPath($row['$columnName'] as String) "
-          ": null";
+      if (isNullable) {
+        return "$row['$columnName'] != null "
+            "? ExternalFile.fromManagedPath($row['$columnName'] as String) "
+            ": null";
+      }
+      return "ExternalFile.fromManagedPath($row['$columnName'] as String)";
     }
     return switch (dartType.replaceAll('?', '').trim()) {
       'DateTime' =>

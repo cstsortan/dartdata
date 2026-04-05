@@ -840,7 +840,40 @@ void main() {
       );
     });
 
-    test('9.3: round-trip — model with ExternalFile and regular fields serializes correctly',
+    test('9.3: fromMap() for non-nullable ExternalFile omits null guard',
+        () async {
+      final cls = await _resolveClass(
+        '''
+        import 'package:dartdata/src/annotations/model.dart';
+        import 'package:dartdata/src/storage/external_file.dart';
+
+        @model
+        class Document {
+          @attribute(primaryKey: true)
+          final String id;
+          ExternalFile content;
+
+          Document({required this.id, required this.content});
+        }
+        ''',
+        'Document',
+      );
+
+      final output = _generate(cls);
+
+      // fromMap should directly call fromManagedPath without a null-guard ternary
+      expect(
+        output,
+        contains("content: ExternalFile.fromManagedPath(row['content'] as String)"),
+      );
+      // Should NOT contain the nullable ternary pattern for 'content'
+      expect(
+        output,
+        isNot(contains(RegExp(r"row\['content'\]\s*!=\s*null"))),
+      );
+    });
+
+    test('9.4: round-trip — model with ExternalFile and regular fields serializes correctly',
         () async {
       final cls = await _resolveClass(
         '''
