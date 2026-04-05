@@ -16,10 +16,13 @@
 ///   DateTime startDate;
 /// }
 /// ```
-const model = _Model();
+const model = Model();
 
-class _Model {
-  const _Model();
+/// Backing class for the [model] annotation constant.
+///
+/// Use the lowercase `@model` const in application code.
+class Model {
+  const Model();
 }
 
 /// Fine-tunes how a single field is persisted.

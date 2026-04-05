@@ -2,6 +2,7 @@ import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/nullability_suffix.dart';
 import 'package:analyzer/dart/element/type.dart';
 import 'package:build/build.dart';
+import 'package:dartdata/src/annotations/model.dart';
 import 'package:dartdata/src/annotations/relationship.dart';
 import 'package:dartdata/src/schema/schema.dart';
 import 'package:source_gen/source_gen.dart';
@@ -11,7 +12,7 @@ import 'package:source_gen/source_gen.dart';
 ///   - A `$ClassName` descriptor class with [QueryField] static fields.
 ///   - A [ModelDescriptor] implementation registered with the [Schema].
 ///   - `toMap()` / `fromMap()` extensions on the model class.
-class ModelGenerator extends GeneratorForAnnotation<_Model> {
+class ModelGenerator extends GeneratorForAnnotation<Model> {
   @override
   String generateForAnnotatedElement(
     Element element,
@@ -65,6 +66,9 @@ class _${className}Descriptor extends ModelDescriptor {
 
   @override
   String get modelClassName => '$className';
+
+  @override
+  Type get modelType => $className;
 
   @override
   List<ColumnDefinition> get columns => [
@@ -134,8 +138,6 @@ ${fields.map((f) => "    '${f.columnName}': ${f.toMapExpression},").join('\n')}
   }
 }
 
-// Shim so we can reference the private _Model const from annotations.
-typedef _Model = dynamic;
 
 class _FieldInfo {
   final String name;
