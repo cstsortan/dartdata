@@ -122,15 +122,36 @@ class ModelContext {
         // Persist any staged ExternalFile fields first.
         await _persistExternalFiles(op.model, descriptor, map);
 
+        final id = map['id'] as String;
+        final vKey = '${descriptor.tableName}:$id';
+
+        // Check for optimistic lock conflict if we have a cached version.
+        final cachedVersion = _versions[vKey];
+        if (cachedVersion != null) {
+          // Verify the row hasn't been modified since we last fetched it.
+          final currentRow = db.select(
+            'SELECT z_opt FROM ${descriptor.tableName} WHERE id = ?',
+            [id],
+          );
+          if (currentRow.isNotEmpty) {
+            final currentVersion = currentRow.first['z_opt'] as int;
+            if (currentVersion != cachedVersion) {
+              throw OptimisticLockError(
+                modelType: descriptor.modelClassName,
+                id: id,
+                expectedVersion: cachedVersion,
+                actualVersion: currentVersion,
+              );
+            }
+          }
+        }
+
         // Build values in descriptor column order for the cached template.
         final values = descriptor.columns
             .map((col) => map[col.columnName])
             .toList();
         db.execute(templates.insert, values);
 
-        // Cache the z_opt version after insert.
-        final id = map['id'] as String;
-        final vKey = '${descriptor.tableName}:$id';
         // After ON CONFLICT upsert, z_opt may have been incremented.
         // Read current z_opt from the database.
         final vRow = db.select(
@@ -549,6 +570,27 @@ class _SqlTemplates {
       delete: 'DELETE FROM ${d.tableName} WHERE id = ?',
     );
   }
+}
+
+/// Thrown when a save fails because the row was modified by another context
+/// since it was fetched.
+class OptimisticLockError extends Error {
+  final String modelType;
+  final String id;
+  final int expectedVersion;
+  final int actualVersion;
+
+  OptimisticLockError({
+    required this.modelType,
+    required this.id,
+    required this.expectedVersion,
+    required this.actualVersion,
+  });
+
+  @override
+  String toString() =>
+      'OptimisticLockError: $modelType(id=$id) expected z_opt=$expectedVersion '
+      'but found $actualVersion — the row was modified by another context.';
 }
 
 /// The set of changes reported after a successful [ModelContext.save].
