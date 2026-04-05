@@ -1,0 +1,19 @@
+{
+  "id": "generator-relationships_20260405",
+  "title": "Generator — Relationship Emission",
+  "type": "feature",
+  "status": "pending",
+  "created": "2026-04-05T00:00:00.000Z",
+  "updated": "2026-04-05T00:00:00.000Z",
+  "current_phase": 0,
+  "current_task": null,
+  "phases": {
+    "total": 4,
+    "completed": 0
+  },
+  "tasks": {
+    "total": 16,
+    "completed": 0
+  },
+  "commits": []
+}
