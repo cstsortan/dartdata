@@ -646,6 +646,154 @@ void main() {
       expect(output, isNot(contains("'_zebra_apple'")));
     });
   });
+
+  // -------------------------------------------------------------------------
+  // Phase 7: Integration — Mixed Relationship Types
+  // -------------------------------------------------------------------------
+
+  group('Phase 7: integration — mixed relationship types', () {
+    test('7.1: full model with to-one, to-many, and m2m relationships',
+        () async {
+      final cls = await _resolveClass(
+        '''
+        import 'package:dartdata/src/annotations/model.dart';
+        import 'package:dartdata/src/annotations/relationship.dart';
+
+        @model
+        class BucketListItem {
+          final String id;
+          String title;
+          BucketListItem({required this.id, required this.title});
+        }
+
+        @model
+        class LivingAccommodation {
+          final String id;
+          String address;
+          LivingAccommodation({required this.id, required this.address});
+        }
+
+        @model
+        class Tag {
+          final String id;
+          String name;
+          Tag({required this.id, required this.name});
+        }
+
+        @model
+        class Trip {
+          @attribute(primaryKey: true)
+          final String id;
+          String name;
+          String destination;
+
+          @relationship(deleteRule: DeleteRule.cascade, inverse: 'trip')
+          List<BucketListItem> bucketList;
+
+          @relationship(deleteRule: DeleteRule.nullify)
+          LivingAccommodation? accommodation;
+
+          @relationship(inverse: 'trips')
+          List<Tag> tags;
+
+          Trip({
+            required this.id,
+            required this.name,
+            required this.destination,
+            required this.bucketList,
+            this.accommodation,
+            required this.tags,
+          });
+        }
+        ''',
+        'Trip',
+      );
+
+      final output = _generate(cls);
+
+      // --- Regular columns (no relationship fields in columns) ---
+      expect(output, contains("columnName: 'id'"));
+      expect(output, contains("columnName: 'name'"));
+      expect(output, contains("columnName: 'destination'"));
+
+      // FK column for to-one accommodation
+      expect(output, contains("columnName: 'accommodation_id'"));
+
+      // No columns for to-many fields
+      expect(output, isNot(contains("columnName: 'bucket_list'")));
+      expect(output, isNot(contains("columnName: 'tags'")));
+
+      // --- RelationshipDefinitions ---
+      // to-many: bucketList
+      expect(output, contains("fieldName: 'bucketList'"));
+      expect(output, contains("relatedTable: 'bucket_list_item'"));
+      expect(output, contains("inverseFieldName: 'trip'"));
+      expect(output, contains('DeleteRule.cascade'));
+
+      // to-one: accommodation
+      expect(output, contains("fieldName: 'accommodation'"));
+      expect(output, contains("relatedTable: 'living_accommodation'"));
+      expect(output, contains('DeleteRule.nullify'));
+      expect(output, contains('isForeignKeySide: true'));
+
+      // many-to-many: tags (has inverse)
+      expect(output, contains("fieldName: 'tags'"));
+      expect(output, contains("relatedTable: 'tag'"));
+      expect(output, contains("inverseFieldName: 'trips'"));
+
+      // --- Junction table for tags ---
+      expect(output, contains("'_tag_trip'")); // alphabetical
+      expect(output, contains('tag_id'));
+      expect(output, contains('trip_id'));
+    });
+
+    test('7.4: generated output structure matches hand-written test model format',
+        () async {
+      final cls = await _resolveClass(
+        '''
+        import 'package:dartdata/src/annotations/model.dart';
+        import 'package:dartdata/src/annotations/relationship.dart';
+
+        @model
+        class Trip {
+          final String id;
+          String name;
+          Trip({required this.id, required this.name});
+        }
+
+        @model
+        class BucketListItem {
+          @attribute(primaryKey: true)
+          final String id;
+          String title;
+
+          @relationship(deleteRule: DeleteRule.cascade, inverse: 'bucketList')
+          Trip? trip;
+
+          BucketListItem({required this.id, required this.title, this.trip});
+        }
+        ''',
+        'BucketListItem',
+      );
+
+      final output = _generate(cls);
+
+      // Verify the structure matches hand-written BucketListItemDescriptor:
+      // - Has RelationshipDefinition with fieldName, relatedTable, cardinality,
+      //   inverseFieldName, deleteRule, fkColumnName, isForeignKeySide
+      expect(output, contains("fieldName: 'trip'"));
+      expect(output, contains("relatedTable: 'trip'"));
+      expect(output, contains('RelationshipCardinality.toOne'));
+      expect(output, contains("inverseFieldName: 'bucketList'"));
+      expect(output, contains('DeleteRule.cascade'));
+      expect(output, contains("fkColumnName: 'trip_id'"));
+      expect(output, contains('isForeignKeySide: true'));
+
+      // FK column should exist
+      expect(output, contains("columnName: 'trip_id'"));
+      expect(output, contains('ColumnType.integer'));
+    });
+  });
 }
 
 /// Minimal [BuildStep] implementation for testing. The generator does not
