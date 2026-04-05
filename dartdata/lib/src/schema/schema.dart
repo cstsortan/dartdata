@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 
 import '../annotations/relationship.dart';
+import '../storage/external_file.dart';
 
 /// Holds the set of model types that a [ModelContainer] should persist.
 ///
@@ -95,6 +96,15 @@ abstract class ModelDescriptor {
 
   /// Reconstruct a model instance from a SQLite row map.
   Object fromMap(Map<String, Object?> row);
+
+  /// Convert a model instance to a SQLite column map.
+  Map<String, Object?> toMap(Object model);
+
+  /// Access an [ExternalFile] field on [model] by [fieldName].
+  ///
+  /// Returns `null` if the field is null or the model has no ExternalFile
+  /// fields. Override in descriptors that declare [externalFileFields].
+  ExternalFile? getExternalFile(Object model, String fieldName) => null;
 }
 
 /// Describes a single SQLite column derived from a `@model` field.

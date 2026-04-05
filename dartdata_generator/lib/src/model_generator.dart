@@ -92,19 +92,25 @@ ${junctionTables.isNotEmpty ? '''
 ${junctionTables.map((jt) => "    $jt,").join('\n')}
   ];''' : ''}
 
+  @override
   $className fromMap(Map<String, Object?> row) {
     return $className(
 ${fields.map((f) => "      ${f.name}: ${f.fromMapExpression('row')},").join('\n')}
     );
   }
+
+  @override
+  Map<String, Object?> toMap(Object model) {
+    final m = model as $className;
+    return {
+${fields.map((f) => "      '${f.columnName}': ${f.toMapExpressionFor('m')},").join('\n')}
+    };
+  }
+${_generateGetExternalFile(className, fields)}
 }
 
 extension ${className}Persistence on $className {
   static final ModelDescriptor descriptor = _${className}Descriptor();
-
-  Map<String, Object?> toMap() => {
-${fields.map((f) => "    '${f.columnName}': ${f.toMapExpression},").join('\n')}
-  };
 }
 ''';
   }
@@ -128,6 +134,26 @@ ${fields.map((f) => "    '${f.columnName}': ${f.toMapExpression},").join('\n')}
         .where((f) => _relationshipChecker.hasAnnotationOf(f))
         .map((f) => _RelationshipInfo.from(f, _relationshipChecker))
         .toList();
+  }
+
+  static String _generateGetExternalFile(
+      String className, List<_FieldInfo> fields) {
+    final extFields = fields.where((f) => f.isExternalFile).toList();
+    if (extFields.isEmpty) return '';
+    final cases = extFields
+        .map((f) =>
+            "      case '${f.columnName}': return m.${f.name};")
+        .join('\n');
+    return '''
+
+  @override
+  ExternalFile? getExternalFile(Object model, String fieldName) {
+    final m = model as $className;
+    switch (fieldName) {
+$cases
+      default: return null;
+    }
+  }''';
   }
 
   String _toSnakeCase(String name) {
@@ -226,7 +252,21 @@ class _FieldInfo {
       }
       return "ExternalFile.fromManagedPath($row['$columnName'] as String)";
     }
-    return switch (dartType.replaceAll('?', '').trim()) {
+    final baseType = dartType.replaceAll('?', '').trim();
+    if (isNullable) {
+      return switch (baseType) {
+        'DateTime' =>
+          "$row['$columnName'] != null "
+              "? DateTime.fromMillisecondsSinceEpoch($row['$columnName'] as int, isUtc: true) "
+              ": null",
+        'bool' =>
+          "$row['$columnName'] != null "
+              "? ($row['$columnName'] as int) != 0 "
+              ": null",
+        _ => "$row['$columnName'] as $dartType",
+      };
+    }
+    return switch (baseType) {
       'DateTime' =>
         "DateTime.fromMillisecondsSinceEpoch($row['$columnName'] as int, isUtc: true)",
       'bool' => "($row['$columnName'] as int) != 0",
@@ -240,6 +280,16 @@ class _FieldInfo {
       'DateTime' => '$name${isNullable ? '?' : ''}.toUtc().millisecondsSinceEpoch',
       'bool' => '$name ? 1 : 0',
       _ => name,
+    };
+  }
+
+  /// Like [toMapExpression] but prefixed with a model variable name.
+  String toMapExpressionFor(String varName) {
+    if (isExternalFile) return 'null'; // replaced by _persistExternalFiles
+    return switch (dartType.replaceAll('?', '').trim()) {
+      'DateTime' => '$varName.$name${isNullable ? '?' : ''}.toUtc().millisecondsSinceEpoch',
+      'bool' => '$varName.$name ? 1 : 0',
+      _ => '$varName.$name',
     };
   }
 

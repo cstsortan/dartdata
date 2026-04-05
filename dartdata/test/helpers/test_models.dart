@@ -100,6 +100,12 @@ class TripDescriptor extends ModelDescriptor {
         endDate: DateTime.fromMillisecondsSinceEpoch(row['end_date'] as int,
             isUtc: true),
       );
+
+  @override
+  Map<String, Object?> toMap(Object model) {
+    final m = model as Trip;
+    return m.toMap();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -151,6 +157,12 @@ class TripV2Descriptor extends ModelDescriptor {
         endDate: DateTime.fromMillisecondsSinceEpoch(row['end_date'] as int,
             isUtc: true),
       );
+
+  @override
+  Map<String, Object?> toMap(Object model) {
+    final m = model as Trip;
+    return m.toMap();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -205,6 +217,12 @@ class TripV3Descriptor extends ModelDescriptor {
         endDate: DateTime.fromMillisecondsSinceEpoch(row['end_date'] as int,
             isUtc: true),
       );
+
+  @override
+  Map<String, Object?> toMap(Object model) {
+    final m = model as Trip;
+    return m.toMap();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -267,6 +285,21 @@ class PhotoDescriptor extends ModelDescriptor {
             ? ExternalFile.fromManagedPath(row['image_data'] as String)
             : null,
       );
+
+  @override
+  Map<String, Object?> toMap(Object model) {
+    final m = model as Photo;
+    return m.toMap();
+  }
+
+  @override
+  ExternalFile? getExternalFile(Object model, String fieldName) {
+    final m = model as Photo;
+    switch (fieldName) {
+      case 'image_data': return m.imageData;
+      default: return null;
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -346,6 +379,12 @@ class BucketListItemDescriptor extends ModelDescriptor {
         isInBucket: (row['is_in_bucket'] as int) == 1,
         tripId: row['trip_id'] as String?,
       );
+
+  @override
+  Map<String, Object?> toMap(Object model) {
+    final m = model as BucketListItem;
+    return m.toMap();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -416,6 +455,12 @@ class SubItemDescriptor extends ModelDescriptor {
         note: row['note'] as String,
         bucketListItemId: row['bucket_list_item_id'] as String?,
       );
+
+  @override
+  Map<String, Object?> toMap(Object model) {
+    final m = model as SubItem;
+    return m.toMap();
+  }
 }
 
 /// Variant of [BucketListItemDescriptor] with [DeleteRule.deny] for testing.
@@ -466,6 +511,12 @@ class DenyBucketListItemDescriptor extends ModelDescriptor {
         isInBucket: (row['is_in_bucket'] as int) == 1,
         tripId: row['trip_id'] as String?,
       );
+
+  @override
+  Map<String, Object?> toMap(Object model) {
+    final m = model as BucketListItem;
+    return m.toMap();
+  }
 }
 
 /// Variant of [BucketListItemDescriptor] with [DeleteRule.noAction] for testing.
@@ -516,6 +567,12 @@ class NoActionBucketListItemDescriptor extends ModelDescriptor {
         isInBucket: (row['is_in_bucket'] as int) == 1,
         tripId: row['trip_id'] as String?,
       );
+
+  @override
+  Map<String, Object?> toMap(Object model) {
+    final m = model as BucketListItem;
+    return m.toMap();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -615,6 +672,12 @@ class TagDescriptor extends ModelDescriptor {
         id: row['id'] as String,
         name: row['name'] as String,
       );
+
+  @override
+  Map<String, Object?> toMap(Object model) {
+    final m = model as Tag;
+    return m.toMap();
+  }
 }
 
 class LivingAccommodationDescriptor extends ModelDescriptor {
@@ -660,4 +723,10 @@ class LivingAccommodationDescriptor extends ModelDescriptor {
         address: row['address'] as String,
         tripId: row['trip_id'] as String?,
       );
+
+  @override
+  Map<String, Object?> toMap(Object model) {
+    final m = model as LivingAccommodation;
+    return m.toMap();
+  }
 }

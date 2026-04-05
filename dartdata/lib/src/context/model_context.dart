@@ -108,7 +108,7 @@ class ModelContext {
   /// Execute a single pending operation against the database.
   Future<void> _execute(_PendingOperation op, Database db) async {
     final descriptor = _descriptorFor(op.model);
-    final map = (op.model as dynamic).toMap() as Map<String, Object?>;
+    final map = descriptor.toMap(op.model);
     final templates = _sqlTemplates[descriptor.tableName]!;
 
     // Validate that toMap() keys match the descriptor's declared columns.
@@ -242,7 +242,7 @@ class ModelContext {
   /// Returns the child objects whose FK references [model].
   Future<List<T>> fetchRelated<T>(Object model, String relationshipField) async {
     final parentDescriptor = _descriptorFor(model);
-    final parentMap = (model as dynamic).toMap() as Map<String, Object?>;
+    final parentMap = parentDescriptor.toMap(model);
     final parentId = parentMap['id'] as String;
 
     // Find the relationship on the parent descriptor.
@@ -356,7 +356,7 @@ class ModelContext {
   ) async {
     final id = map['id'] as String;
     for (final fieldName in descriptor.externalFileFields) {
-      final file = (model as dynamic).getExternalFile(fieldName) as ExternalFile?;
+      final file = descriptor.getExternalFile(model, fieldName);
       if (file == null || !file.isStaged) continue;
       final destination = _blobFile(id, fieldName);
       await file.persistTo(destination);
@@ -368,8 +368,7 @@ class ModelContext {
   Future<void> _deleteExternalFiles(
       Object model, ModelDescriptor descriptor) async {
     for (final fieldName in descriptor.externalFileFields) {
-      final file =
-          (model as dynamic).getExternalFile(fieldName) as ExternalFile?;
+      final file = descriptor.getExternalFile(model, fieldName);
       if (file == null) continue;
       file.delete();
       await file.removeFromDisk();
@@ -411,7 +410,7 @@ class ModelContext {
       if (op.type != _OperationType.delete) continue;
 
       final parentDescriptor = _descriptorFor(op.model);
-      final parentMap = (op.model as dynamic).toMap() as Map<String, Object?>;
+      final parentMap = parentDescriptor.toMap(op.model);
       final parentId = parentMap['id'] as String;
 
       final children = _reverseRelationships[parentDescriptor.tableName];
