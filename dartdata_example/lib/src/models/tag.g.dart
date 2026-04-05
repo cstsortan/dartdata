@@ -50,29 +50,10 @@ class _TagDescriptor extends ModelDescriptor {
       ];
 
   @override
-  List<RelationshipDefinition> get relationships => [
-        RelationshipDefinition(
-          fieldName: 'posts',
-          relatedTable: 'post',
-          cardinality: RelationshipCardinality.toMany,
-          inverseFieldName: 'tags',
-          deleteRule: DeleteRule.deny,
-        ),
-      ];
+  List<RelationshipDefinition> get relationships => [];
 
   @override
   List<String> get externalFileFields => [];
-
-  @override
-  List<JunctionTableDefinition> get junctionTables => [
-        JunctionTableDefinition(
-          tableName: '_post_tag',
-          firstFkColumn: 'post_id',
-          firstTable: 'post',
-          secondFkColumn: 'tag_id',
-          secondTable: 'tag',
-        ),
-      ];
 
   @override
   Tag fromMap(Map<String, Object?> row) {

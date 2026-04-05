@@ -62,16 +62,16 @@ void main() {
       expect(tables, containsAll(['_schema_version', '_change_log']));
     });
 
-    test('junction table is created for Tag ↔ Post many-to-many', () {
+    test('explicit junction table post_tag exists for Tag ↔ Post', () {
       final tables = container.db
           .select(
             "SELECT name FROM sqlite_master "
-            "WHERE type='table' AND name = '_post_tag'",
+            "WHERE type='table' AND name = 'post_tag'",
           )
           .map((row) => row['name'] as String)
           .toList();
 
-      expect(tables, contains('_post_tag'));
+      expect(tables, contains('post_tag'));
     });
 
     test('z_pk and z_opt system columns are present on every model table', () {

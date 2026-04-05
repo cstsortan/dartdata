@@ -64,9 +64,13 @@ void main() {
       ));
       await context.save();
 
-      // Link to post
+      // Link to post using z_pk integer FK
+      final postZpk = container.db.select(
+        "SELECT z_pk FROM post WHERE id = 'p1'",
+      ).first['z_pk'] as int;
       container.db.execute(
-        "UPDATE attachment SET post_id = 'p1' WHERE id = 'att1'",
+        'UPDATE attachment SET post_id = ? WHERE id = ?',
+        [postZpk, 'att1'],
       );
 
       final att = (await context.fetchOne<Attachment>(id: 'att1'))!;

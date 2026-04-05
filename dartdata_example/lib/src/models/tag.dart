@@ -1,12 +1,11 @@
 import 'package:dartdata/dartdata.dart';
 import 'package:uuid/uuid.dart';
 
-import 'post.dart';
-
 part 'tag.g.dart';
 
-/// A tag with many-to-many relationship to Post via auto junction table.
-/// Uses DeleteRule.deny — cannot delete a Tag while Posts reference it.
+/// A tag linked to Posts via the explicit [PostTag] junction model.
+/// The many-to-many relationship goes through PostTag (which carries extra
+/// fields like pinnedAt), so no auto junction table is generated here.
 @model
 class Tag {
   @attribute(primaryKey: true)
@@ -15,12 +14,8 @@ class Tag {
   @attribute(unique: true)
   String name;
 
-  @relationship(deleteRule: DeleteRule.deny, inverse: 'tags')
-  List<Post> posts;
-
   Tag({
     String? id,
     required this.name,
-    this.posts = const [],
   }) : id = id ?? const Uuid().v4();
 }
