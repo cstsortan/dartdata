@@ -38,15 +38,15 @@ Implement the core FK UUID -> z_pk resolution logic in `ModelContext` for insert
 
 ### Tasks
 
-- [ ] Task 2.1: Write failing test — `BucketListItem FK stores Trip z_pk integer after insert + save` (RED)
-- [ ] Task 2.2: Implement `_resolveRelationshipFks` private method in `ModelContext` — iterates `getRelationshipIds()`, resolves each UUID via `SELECT z_pk FROM related_table WHERE id = ?`, injects integer into map
-- [ ] Task 2.3: Call `_resolveRelationshipFks` in `_execute()` for both insert and update paths, after `_persistExternalFiles`
-- [ ] Task 2.4: Run failing test — verify it passes (GREEN)
+- [x] Task 2.1: Write failing test — `BucketListItem FK stores Trip z_pk integer after insert + save` (RED)
+- [x] Task 2.2: Implement `_resolveRelationshipFks` private method in `ModelContext` — iterates `getRelationshipIds()`, resolves each UUID via `SELECT z_pk FROM related_table WHERE id = ?`, injects integer into map
+- [x] Task 2.3: Call `_resolveRelationshipFks` in `_execute()` for both insert and update paths, before switch
+- [x] Task 2.4: Run failing test — verify it passes (GREEN)
 
 ### Verification
 
-- [ ] FK column stores integer z_pk, not UUID string
-- [ ] Inserting child with unsaved parent throws `StateError` with clear message
+- [x] FK column stores integer z_pk, not UUID string
+- [x] Inserting child with unsaved parent throws `StateError` with clear message
 
 ## Phase 3: Delete Rules & fetchRelated
 

@@ -121,6 +121,9 @@ class ModelContext {
       );
     }
 
+    // Resolve FK UUIDs → z_pk integers for relationship columns.
+    _resolveRelationshipFks(op.model, descriptor, map);
+
     switch (op.type) {
       case _OperationType.insert:
         // Persist any staged ExternalFile fields first.
@@ -342,6 +345,59 @@ class ModelContext {
   // -------------------------------------------------------------------------
   // Helpers
   // -------------------------------------------------------------------------
+
+  /// Resolve FK UUID strings to z_pk integers for all relationship columns.
+  ///
+  /// Calls `getRelationshipIds()` on the descriptor to get FK column → UUID
+  /// pairs, then looks up each UUID's z_pk via SQL and injects the integer
+  /// into [map]. Throws [StateError] if a related object hasn't been saved.
+  void _resolveRelationshipFks(
+    Object model,
+    ModelDescriptor descriptor,
+    Map<String, Object?> map,
+  ) {
+    final relIds = descriptor.getRelationshipIds(model);
+    if (relIds.isEmpty) return;
+
+    for (final entry in relIds.entries) {
+      final fkColumn = entry.key;
+      final relatedUuid = entry.value;
+
+      if (relatedUuid == null) {
+        map[fkColumn] = null;
+        continue;
+      }
+
+      // Find the related table from the relationship definitions.
+      final rel = descriptor.relationships.firstWhere(
+        (r) => r.fkColumnName == fkColumn,
+        orElse: () => throw StateError(
+          'No relationship with fkColumnName "$fkColumn" '
+          'on ${descriptor.modelClassName}',
+        ),
+      );
+
+      final zpk = _resolveZpk(rel.relatedTable, relatedUuid);
+      map[fkColumn] = zpk;
+    }
+  }
+
+  /// Look up the z_pk integer for a row by its UUID id.
+  ///
+  /// Throws [StateError] if the row doesn't exist (unsaved parent).
+  int _resolveZpk(String tableName, String uuid) {
+    final rows = container.db.select(
+      'SELECT z_pk FROM $tableName WHERE id = ?',
+      [uuid],
+    );
+    if (rows.isEmpty) {
+      throw StateError(
+        'Cannot resolve FK: no row in "$tableName" with id "$uuid". '
+        'Save the parent object before its children.',
+      );
+    }
+    return rows.first['z_pk'] as int;
+  }
 
   String _buildSelectSql<T>(ModelDescriptor descriptor, Query<T> query) {
     final parts = ['SELECT * FROM ${descriptor.tableName}'];
