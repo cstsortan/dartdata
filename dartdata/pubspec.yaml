@@ -1,0 +1,30 @@
+name: dartdata
+description: >
+  A Flutter persistence library inspired by SwiftData.
+  Annotate your models, query with type safety, store files — no SQL required.
+version: 0.1.0
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+  flutter: '>=3.19.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # SQLite via FFI — works on iOS, Android, macOS, Windows, Linux
+  sqlite3: ^2.4.0
+  sqlite3_flutter_libs: ^0.5.0
+  # File paths
+  path_provider: ^2.1.0
+  path: ^1.9.0
+  # UUID generation for primary keys and blob filenames
+  uuid: ^4.3.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  # The code generator (local path during development)
+  dartdata_generator:
+    path: ../dartdata_generator
+  build_runner: ^2.4.0

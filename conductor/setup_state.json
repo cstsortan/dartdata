@@ -1,0 +1,37 @@
+{
+  "status": "complete",
+  "project_type": "brownfield",
+  "current_section": "complete",
+  "current_question": 0,
+  "completed_sections": ["product", "guidelines", "tech_stack", "workflow", "styleguides"],
+  "answers": {
+    "project_name": "dartdata",
+    "description": "A Flutter persistence library inspired by Apple's SwiftData that lets you annotate models and query with type safety — no SQL required.",
+    "problem_statement": "Flutter developers have no SwiftData-equivalent — they're forced to write raw SQL or use heavy ORMs with poor type safety.",
+    "target_users": "Flutter/Dart developers building mobile or desktop apps who want SwiftData-style persistence",
+    "key_goals": "Type-safe queries, zero SQL boilerplate, SwiftData-compatible mental model",
+    "voice_tone": "Professional and technical",
+    "design_principles": "Simplicity over features, SwiftData API parity, developer experience focused",
+    "primary_languages": "Dart (Flutter) + shell scripts for tooling. Core library must be pure Dart compatible for integration testing.",
+    "frontend_framework": "Flutter (target consumer framework — not a dependency of the library itself)",
+    "backend_framework": "None — client-side library",
+    "database": "SQLite via sqlite3 FFI",
+    "distribution": "pub.dev + GitHub releases",
+    "tdd_strictness": "Strict — tests required before implementation",
+    "commit_strategy": "Conventional Commits",
+    "code_review": "Required for all changes",
+    "verification_checkpoints": "Only at track completion",
+    "style_guides": "Dart (fresh)"
+  },
+  "files_created": [
+    "conductor/index.md",
+    "conductor/product.md",
+    "conductor/product-guidelines.md",
+    "conductor/tech-stack.md",
+    "conductor/workflow.md",
+    "conductor/tracks.md",
+    "conductor/code_styleguides/dart.md"
+  ],
+  "started_at": "2026-04-05T00:00:00Z",
+  "last_updated": "2026-04-05T00:00:00Z"
+}

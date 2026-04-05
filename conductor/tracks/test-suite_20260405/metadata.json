@@ -1,0 +1,16 @@
+{
+  "id": "test-suite_20260405",
+  "title": "Full Validation Test Suite",
+  "type": "feature",
+  "status": "pending",
+  "created": "2026-04-05T00:00:00.000Z",
+  "updated": "2026-04-05T00:00:00.000Z",
+  "phases": {
+    "total": 6,
+    "completed": 0
+  },
+  "tasks": {
+    "total": 29,
+    "completed": 0
+  }
+}
