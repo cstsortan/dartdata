@@ -265,6 +265,13 @@ void main() {
       // The extra row should NOT have been committed.
       final extra = await context.fetchOne<Trip>(id: 'tx-extra');
       expect(extra, isNull);
+
+      // Verify _versions cache was restored after rollback.
+      // ctx3 fetched 'tx-lock-1' at z_opt 1, so after rollback it should
+      // still report 1 (not a post-upsert value from the rolled-back tx).
+      expect(ctx3.versionOf<Trip>('tx-lock-1'), equals(1));
+      // tx-extra was never fetched, so it should not appear in the cache.
+      expect(ctx3.versionOf<Trip>('tx-extra'), isNull);
     });
 
     test('Task 3.5: deleting a concurrently updated row still succeeds',

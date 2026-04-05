@@ -71,6 +71,7 @@ class ModelContext {
     if (_pending.isEmpty) return;
 
     final db = container.db;
+    final versionSnapshot = Map<String, int>.of(_versions);
     db.execute('BEGIN');
 
     try {
@@ -91,6 +92,9 @@ class ModelContext {
       db.execute('COMMIT');
     } catch (e) {
       db.execute('ROLLBACK');
+      _versions
+        ..clear()
+        ..addAll(versionSnapshot);
       rethrow;
     }
 
