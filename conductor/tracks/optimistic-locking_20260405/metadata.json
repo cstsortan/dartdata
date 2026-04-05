@@ -1,0 +1,19 @@
+{
+  "id": "optimistic-locking_20260405",
+  "title": "z_opt Optimistic Locking",
+  "type": "feature",
+  "status": "pending",
+  "created": "2026-04-05T00:00:00.000Z",
+  "updated": "2026-04-05T00:00:00.000Z",
+  "current_phase": 0,
+  "current_task": null,
+  "phases": {
+    "total": 3,
+    "completed": 0
+  },
+  "tasks": {
+    "total": 12,
+    "completed": 0
+  },
+  "commits": []
+}
