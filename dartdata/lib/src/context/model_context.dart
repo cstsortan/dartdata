@@ -240,20 +240,27 @@ class ModelContext {
 
   /// Execute [action] inside a single database transaction.
   ///
-  /// Only operations added during [action] are committed. If [action] throws,
-  /// all staged changes are rolled back. Pre-existing pending operations are
-  /// preserved on failure.
+  /// Only operations staged during [action] are committed. If [action]
+  /// throws, all changes (including any cascade operations appended by
+  /// delete-rule enforcement) are rolled back at both the SQLite and
+  /// in-memory levels.
+  ///
+  /// Throws [StateError] if there are already pending operations — call
+  /// [save] or [rollback] first. This prevents ambiguity about whether
+  /// pre-existing ops should be included in the transaction.
   Future<T> transaction<T>(Future<T> Function() action) async {
-    final snapshot = List<_PendingOperation>.from(_pending);
-    _pending.clear();
+    if (_pending.isNotEmpty) {
+      throw StateError(
+        'Cannot start a transaction with ${_pending.length} pending '
+        'operation(s). Call save() or rollback() first.',
+      );
+    }
     try {
       final result = await action();
       await save();
       return result;
     } catch (e) {
-      _pending
-        ..clear()
-        ..addAll(snapshot);
+      _pending.clear();
       rethrow;
     }
   }
@@ -415,13 +422,10 @@ class ModelContext {
     final index = <String, List<_ChildRelationship>>{};
     for (final childDescriptor in container.schema.descriptors) {
       for (final rel in childDescriptor.relationships) {
-        // Use explicit fkColumnName, or fall back to convention.
-        final fkColumn = rel.fkColumnName ?? '${rel.fieldName}_id';
+        // Only index child-side relationships — those that own the FK column.
+        if (!rel.isForeignKeySide) continue;
 
-        // Only index child-side relationships (where the FK column exists).
-        if (!childDescriptor.columns.any((c) => c.columnName == fkColumn)) {
-          continue;
-        }
+        final fkColumn = rel.fkColumnName ?? '${rel.fieldName}_id';
 
         index.putIfAbsent(rel.relatedTable, () => []).add(
           _ChildRelationship(childDescriptor, rel.deleteRule, fkColumn),

@@ -94,6 +94,12 @@ class RelationshipDefinition {
   /// Explicit rather than derived via convention.
   final String? fkColumnName;
 
+  /// Whether this side of the relationship owns the foreign key column.
+  /// `true` for the child side (e.g., BucketListItem → Trip), `false` for the
+  /// parent/inverse side. Used by [ModelContext] to determine relationship
+  /// direction without probing column existence by name convention.
+  final bool isForeignKeySide;
+
   const RelationshipDefinition({
     required this.fieldName,
     required this.relatedTable,
@@ -101,6 +107,7 @@ class RelationshipDefinition {
     this.inverseFieldName,
     required this.deleteRule,
     this.fkColumnName,
+    this.isForeignKeySide = false,
   });
 }
 

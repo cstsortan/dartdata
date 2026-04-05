@@ -227,6 +227,7 @@ class BucketListItemDescriptor extends ModelDescriptor {
           inverseFieldName: 'bucketList',
           deleteRule: DeleteRule.cascade,
           fkColumnName: 'trip_id',
+          isForeignKeySide: true,
         ),
       ];
 
@@ -297,6 +298,7 @@ class SubItemDescriptor extends ModelDescriptor {
           inverseFieldName: 'subItems',
           deleteRule: DeleteRule.cascade,
           fkColumnName: 'bucket_list_item_id',
+          isForeignKeySide: true,
         ),
       ];
 
@@ -345,6 +347,7 @@ class DenyBucketListItemDescriptor extends ModelDescriptor {
           inverseFieldName: 'bucketList',
           deleteRule: DeleteRule.deny,
           fkColumnName: 'trip_id',
+          isForeignKeySide: true,
         ),
       ];
 
@@ -394,6 +397,7 @@ class NoActionBucketListItemDescriptor extends ModelDescriptor {
           inverseFieldName: 'bucketList',
           deleteRule: DeleteRule.noAction,
           fkColumnName: 'trip_id',
+          isForeignKeySide: true,
         ),
       ];
 
@@ -466,6 +470,7 @@ class LivingAccommodationDescriptor extends ModelDescriptor {
           cardinality: RelationshipCardinality.toOne,
           deleteRule: DeleteRule.nullify,
           fkColumnName: 'trip_id',
+          isForeignKeySide: true,
         ),
       ];
 
