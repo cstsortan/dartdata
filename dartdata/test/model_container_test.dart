@@ -186,6 +186,45 @@ void main() {
   });
 
   // ---------------------------------------------------------------------------
+  // Task 3.6b: Junction table creation for many-to-many relationships
+  // ---------------------------------------------------------------------------
+  group('ModelContainer — junction tables', () {
+    test('creates junction table for many-to-many relationship', () async {
+      final container = await ModelContainer.create(
+        schema: Schema([TripDescriptor(), TagDescriptor()]),
+        configuration: const ModelConfiguration.inMemory(),
+      );
+      addTearDown(container.close);
+
+      final tables = container.db
+          .select("SELECT name FROM sqlite_master WHERE type='table'")
+          .map((r) => r['name'] as String)
+          .toList();
+
+      expect(tables, contains('_tag_trip'));
+    });
+
+    test('junction table has composite primary key and FK columns', () async {
+      final container = await ModelContainer.create(
+        schema: Schema([TripDescriptor(), TagDescriptor()]),
+        configuration: const ModelConfiguration.inMemory(),
+      );
+      addTearDown(container.close);
+
+      final cols = container.db.select("PRAGMA table_info(_tag_trip)");
+      final colMap = {for (final c in cols) c['name'] as String: c};
+
+      expect(colMap, contains('tag_id'));
+      expect(colMap, contains('trip_id'));
+      expect(colMap['tag_id']!['type'], equals('INTEGER'));
+      expect(colMap['trip_id']!['type'], equals('INTEGER'));
+      // Both columns should be NOT NULL
+      expect(colMap['tag_id']!['notnull'], equals(1));
+      expect(colMap['trip_id']!['notnull'], equals(1));
+    });
+  });
+
+  // ---------------------------------------------------------------------------
   // Task 3.7: MigrationPolicy.automatic adds column without data loss
   // ---------------------------------------------------------------------------
   group('ModelContainer — automatic migration', () {

@@ -545,6 +545,78 @@ abstract class $LivingAccommodation {
   static final tripId = QueryField<String>('trip_id');
 }
 
+// ---------------------------------------------------------------------------
+// Tag model (many-to-many with Trip via junction table)
+// ---------------------------------------------------------------------------
+
+class Tag {
+  final String id;
+  String name;
+
+  Tag({required this.id, required this.name});
+
+  Map<String, Object?> toMap() => {
+        'id': id,
+        'name': name,
+      };
+}
+
+abstract class $Tag {
+  static final name = QueryField<String>('name');
+}
+
+class TagDescriptor extends ModelDescriptor {
+  @override
+  String get tableName => 'tag';
+
+  @override
+  String get modelClassName => 'Tag';
+
+  @override
+  Type get modelType => Tag;
+
+  @override
+  List<ColumnDefinition> get columns => [
+        const ColumnDefinition(
+            columnName: 'id',
+            type: ColumnType.text,
+            isPrimaryKey: true,
+            isNullable: false),
+        const ColumnDefinition(columnName: 'name', type: ColumnType.text),
+      ];
+
+  @override
+  List<RelationshipDefinition> get relationships => [
+        const RelationshipDefinition(
+          fieldName: 'trips',
+          relatedTable: 'trip',
+          cardinality: RelationshipCardinality.toMany,
+          inverseFieldName: 'tags',
+          deleteRule: DeleteRule.nullify,
+        ),
+      ];
+
+  @override
+  List<String> get externalFileFields => [];
+
+  @override
+  List<JunctionTableDefinition> get junctionTables => [
+        const JunctionTableDefinition(
+          tableName: '_tag_trip',
+          firstFkColumn: 'tag_id',
+          firstTable: 'tag',
+          secondFkColumn: 'trip_id',
+          secondTable: 'trip',
+        ),
+      ];
+
+  @override
+  Tag fromMap(Map<String, Object?> row) => Tag(
+        id: row['id'] as String,
+        name: row['name'] as String,
+      );
+}
+
 class LivingAccommodationDescriptor extends ModelDescriptor {
   @override
   String get tableName => 'living_accommodation';
