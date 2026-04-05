@@ -12,7 +12,7 @@
 | | | **Tier 2 — Code Generator** | | |
 | [x] | generator-attributes_20260405 | Generator — @attribute Annotation Reading | 2026-04-05 | 2026-04-05 |
 | [x] | generator-relationships_20260405 | Generator — Relationship Emission | 2026-04-05 | 2026-04-05 |
-| [ ] | generator-external-files_20260405 | Generator — ExternalFile Field Handling | 2026-04-05 | 2026-04-05 |
+| [x] | generator-external-files_20260405 | Generator — ExternalFile Field Handling | 2026-04-05 | 2026-04-05 |
 | | | | | |
 | | | **Tier 3 — Flutter Integration** | | |
 | [ ] | context-change-set_20260405 | Full ContextChangeSet | 2026-04-05 | 2026-04-05 |

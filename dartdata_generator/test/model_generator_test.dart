@@ -15,6 +15,8 @@ Future<ClassElement> _resolveClass(String source, String className) async {
       'dartdata|lib/src/annotations/model.dart': useAssetReader,
       'dartdata|lib/src/annotations/relationship.dart': useAssetReader,
       'dartdata|lib/src/schema/schema.dart': useAssetReader,
+      'dartdata|lib/src/storage/external_file.dart': useAssetReader,
+      'dartdata|lib/dartdata.dart': useAssetReader,
       'test_lib|lib/model.dart': source,
     },
     (resolver) async {
@@ -644,6 +646,331 @@ void main() {
       expect(output, contains("'_apple_zebra'"));
       // Not the reverse order
       expect(output, isNot(contains("'_zebra_apple'")));
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Phase 8: ExternalFile Field Handling
+  // -------------------------------------------------------------------------
+
+  group('Phase 8: ExternalFile field handling', () {
+    test('8.1: ExternalFile? produces TEXT column with isNullable: true',
+        () async {
+      final cls = await _resolveClass(
+        '''
+        import 'package:dartdata/src/annotations/model.dart';
+        import 'package:dartdata/src/storage/external_file.dart';
+
+        @model
+        class Photo {
+          @attribute(primaryKey: true)
+          final String id;
+          String title;
+          ExternalFile? imageData;
+
+          Photo({required this.id, required this.title, this.imageData});
+        }
+        ''',
+        'Photo',
+      );
+
+      final output = _generate(cls);
+
+      // ExternalFile? should produce a TEXT column
+      expect(
+        output,
+        contains(RegExp(r"columnName: 'image_data'.*type: ColumnType\.text")),
+      );
+      // Should be nullable
+      expect(
+        output,
+        contains(RegExp(r"columnName: 'image_data'.*isNullable: true")),
+      );
+    });
+
+    test('8.2: non-nullable ExternalFile produces isNullable: false column',
+        () async {
+      final cls = await _resolveClass(
+        '''
+        import 'package:dartdata/src/annotations/model.dart';
+        import 'package:dartdata/src/storage/external_file.dart';
+
+        @model
+        class Document {
+          @attribute(primaryKey: true)
+          final String id;
+          ExternalFile content;
+
+          Document({required this.id, required this.content});
+        }
+        ''',
+        'Document',
+      );
+
+      final output = _generate(cls);
+
+      expect(
+        output,
+        contains(RegExp(r"columnName: 'content'.*isNullable: false")),
+      );
+    });
+
+    test('8.3: ExternalFile fields appear in externalFileFields list',
+        () async {
+      final cls = await _resolveClass(
+        '''
+        import 'package:dartdata/src/annotations/model.dart';
+        import 'package:dartdata/src/storage/external_file.dart';
+
+        @model
+        class Photo {
+          @attribute(primaryKey: true)
+          final String id;
+          String title;
+          ExternalFile? imageData;
+
+          Photo({required this.id, required this.title, this.imageData});
+        }
+        ''',
+        'Photo',
+      );
+
+      final output = _generate(cls);
+
+      // externalFileFields should contain 'image_data'
+      expect(output, contains("externalFileFields"));
+      expect(
+        output,
+        contains(RegExp(r"externalFileFields\s*=>\s*\[\s*'image_data'")),
+      );
+    });
+
+    test('8.4: ExternalFile fields do NOT generate QueryField statics',
+        () async {
+      final cls = await _resolveClass(
+        '''
+        import 'package:dartdata/src/annotations/model.dart';
+        import 'package:dartdata/src/storage/external_file.dart';
+
+        @model
+        class Photo {
+          @attribute(primaryKey: true)
+          final String id;
+          String title;
+          ExternalFile? imageData;
+
+          Photo({required this.id, required this.title, this.imageData});
+        }
+        ''',
+        'Photo',
+      );
+
+      final output = _generate(cls);
+
+      // Should have QueryField for title
+      expect(output, contains("QueryField<String>('title')"));
+      // Should NOT have QueryField for imageData / image_data
+      expect(output, isNot(contains("imageDataField")));
+      expect(output, isNot(contains("image_dataField")));
+      expect(output, isNot(contains("QueryField<String>('image_data')")));
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Phase 9: ExternalFile Serialization (toMap / fromMap)
+  // -------------------------------------------------------------------------
+
+  group('Phase 9: ExternalFile serialization', () {
+    test('9.1: toMap() for ExternalFile? emits null (UUID injected by ModelContext)',
+        () async {
+      final cls = await _resolveClass(
+        '''
+        import 'package:dartdata/src/annotations/model.dart';
+        import 'package:dartdata/src/storage/external_file.dart';
+
+        @model
+        class Photo {
+          @attribute(primaryKey: true)
+          final String id;
+          String title;
+          ExternalFile? imageData;
+
+          Photo({required this.id, required this.title, this.imageData});
+        }
+        ''',
+        'Photo',
+      );
+
+      final output = _generate(cls);
+
+      // toMap should emit null for ExternalFile (UUID is injected by _persistExternalFiles)
+      expect(
+        output,
+        contains(RegExp(r"'image_data':\s*null")),
+      );
+    });
+
+    test('9.2: fromMap() reconstructs ExternalFile.fromManagedPath when non-null',
+        () async {
+      final cls = await _resolveClass(
+        '''
+        import 'package:dartdata/src/annotations/model.dart';
+        import 'package:dartdata/src/storage/external_file.dart';
+
+        @model
+        class Photo {
+          @attribute(primaryKey: true)
+          final String id;
+          String title;
+          ExternalFile? imageData;
+
+          Photo({required this.id, required this.title, this.imageData});
+        }
+        ''',
+        'Photo',
+      );
+
+      final output = _generate(cls);
+
+      // fromMap should check for null and construct ExternalFile.fromManagedPath
+      expect(output, contains('ExternalFile.fromManagedPath'));
+      expect(
+        output,
+        contains(RegExp(r"row\['image_data'\]\s*!=\s*null")),
+      );
+    });
+
+    test('9.3: fromMap() for non-nullable ExternalFile omits null guard',
+        () async {
+      final cls = await _resolveClass(
+        '''
+        import 'package:dartdata/src/annotations/model.dart';
+        import 'package:dartdata/src/storage/external_file.dart';
+
+        @model
+        class Document {
+          @attribute(primaryKey: true)
+          final String id;
+          ExternalFile content;
+
+          Document({required this.id, required this.content});
+        }
+        ''',
+        'Document',
+      );
+
+      final output = _generate(cls);
+
+      // fromMap should directly call fromManagedPath without a null-guard ternary
+      expect(
+        output,
+        contains("content: ExternalFile.fromManagedPath(row['content'] as String)"),
+      );
+      // Should NOT contain the nullable ternary pattern for 'content'
+      expect(
+        output,
+        isNot(contains(RegExp(r"row\['content'\]\s*!=\s*null"))),
+      );
+    });
+
+    test('9.4: round-trip — model with ExternalFile and regular fields serializes correctly',
+        () async {
+      final cls = await _resolveClass(
+        '''
+        import 'package:dartdata/src/annotations/model.dart';
+        import 'package:dartdata/src/storage/external_file.dart';
+
+        @model
+        class Document {
+          @attribute(primaryKey: true)
+          final String id;
+          String title;
+          ExternalFile? attachment;
+          int pageCount;
+
+          Document({
+            required this.id,
+            required this.title,
+            this.attachment,
+            required this.pageCount,
+          });
+        }
+        ''',
+        'Document',
+      );
+
+      final output = _generate(cls);
+
+      // toMap: regular fields serialized normally, ExternalFile emits null
+      expect(output, contains("'id': id"));
+      expect(output, contains("'title': title"));
+      expect(output, contains("'page_count': pageCount"));
+      expect(output, contains(RegExp(r"'attachment':\s*null")));
+
+      // fromMap: regular fields deserialized normally, ExternalFile uses fromManagedPath
+      expect(output, contains("id: row['id'] as String"));
+      expect(output, contains("title: row['title'] as String"));
+      expect(output, contains("pageCount: row['page_count'] as int"));
+      expect(output, contains("ExternalFile.fromManagedPath"));
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Phase 10: ExternalFile Integration
+  // -------------------------------------------------------------------------
+
+  group('Phase 10: ExternalFile integration', () {
+    test('10.1: full model with mixed regular fields and ExternalFile matches hand-written descriptor format',
+        () async {
+      final cls = await _resolveClass(
+        '''
+        import 'package:dartdata/src/annotations/model.dart';
+        import 'package:dartdata/src/storage/external_file.dart';
+
+        @model
+        class Photo {
+          @attribute(primaryKey: true)
+          final String id;
+          String title;
+          ExternalFile? imageData;
+
+          Photo({required this.id, required this.title, this.imageData});
+        }
+        ''',
+        'Photo',
+      );
+
+      final output = _generate(cls);
+
+      // --- Columns ---
+      // id: primary key TEXT
+      expect(output, contains(RegExp(r"columnName: 'id'.*isPrimaryKey: true")));
+      // title: regular TEXT
+      expect(output, contains("columnName: 'title'"));
+      // image_data: TEXT (ExternalFile stores UUID string)
+      expect(output, contains(RegExp(r"columnName: 'image_data'.*type: ColumnType\.text.*isNullable: true")));
+
+      // --- externalFileFields ---
+      expect(output, contains(RegExp(r"externalFileFields\s*=>\s*\[\s*'image_data'")));
+
+      // --- QueryField statics ---
+      // title gets a QueryField, imageData does NOT
+      expect(output, contains("QueryField<String>('title')"));
+      expect(output, isNot(contains("QueryField<String>('image_data')")));
+
+      // --- toMap ---
+      expect(output, contains("'id': id"));
+      expect(output, contains("'title': title"));
+      expect(output, contains(RegExp(r"'image_data':\s*null")));
+
+      // --- fromMap ---
+      expect(output, contains("id: row['id'] as String"));
+      expect(output, contains("title: row['title'] as String"));
+      expect(output, contains("ExternalFile.fromManagedPath"));
+      expect(output, contains(RegExp(r"row\['image_data'\]\s*!=\s*null")));
+
+      // --- No relationships ---
+      expect(output, contains("get relationships => ["));
     });
   });
 

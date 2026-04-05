@@ -3,7 +3,7 @@
 **Track ID:** generator-external-files_20260405
 **Spec:** [spec.md](./spec.md)
 **Created:** 2026-04-05
-**Status:** [ ] Pending | [~] In Progress | [x] Complete
+**Status:** [x] Complete
 
 ## Overview
 
@@ -15,20 +15,20 @@ Extend the generator to emit correct `TEXT` column definitions, `toMap()`/`fromM
 
 ### Tasks
 
-- [ ] Task 1.1: **Red** — Write generator test: a model with `ExternalFile? imageData` produces a `ColumnDefinition` with `type: ColumnType.text` and `isNullable: true`.
-- [ ] Task 1.2: **Green** — Detect `ExternalFile` type in the generator's field processing loop; emit `ColumnType.text` column.
-- [ ] Task 1.3: **Red** — Write test: `ExternalFile` (non-nullable) produces `isNullable: false` column.
-- [ ] Task 1.4: **Green** — Handle nullable vs non-nullable ExternalFile types.
-- [ ] Task 1.5: **Red** — Write test: `ExternalFile` fields appear in the generated `externalFileFields` list.
-- [ ] Task 1.6: **Green** — Emit field names into the `externalFileFields` getter on the generated descriptor.
-- [ ] Task 1.7: **Red** — Write test: `ExternalFile` fields do NOT generate `QueryField` statics.
-- [ ] Task 1.8: **Green** — Skip `ExternalFile` fields during `$ClassName` query descriptor generation.
+- [x] Task 1.1: **Red** — Write generator test: a model with `ExternalFile? imageData` produces a `ColumnDefinition` with `type: ColumnType.text` and `isNullable: true`.
+- [x] Task 1.2: **Green** — Detect `ExternalFile` type in the generator's field processing loop; emit `ColumnType.text` column.
+- [x] Task 1.3: **Red** — Write test: `ExternalFile` (non-nullable) produces `isNullable: false` column.
+- [x] Task 1.4: **Green** — Handle nullable vs non-nullable ExternalFile types.
+- [x] Task 1.5: **Red** — Write test: `ExternalFile` fields appear in the generated `externalFileFields` list.
+- [x] Task 1.6: **Green** — Emit field names into the `externalFileFields` getter on the generated descriptor.
+- [x] Task 1.7: **Red** — Write test: `ExternalFile` fields do NOT generate `QueryField` statics.
+- [x] Task 1.8: **Green** — Skip `ExternalFile` fields during `$ClassName` query descriptor generation.
 
 ### Verification
 
-- [ ] ExternalFile fields produce TEXT columns
-- [ ] Fields registered in externalFileFields
-- [ ] No QueryField statics for ExternalFile fields
+- [x] ExternalFile fields produce TEXT columns
+- [x] Fields registered in externalFileFields
+- [x] No QueryField statics for ExternalFile fields
 
 ---
 
@@ -36,17 +36,17 @@ Extend the generator to emit correct `TEXT` column definitions, `toMap()`/`fromM
 
 ### Tasks
 
-- [ ] Task 2.1: **Red** — Write test: generated `toMap()` for an `ExternalFile?` field emits the UUID extraction logic (null-safe).
-- [ ] Task 2.2: **Green** — In `toMap()` generation, emit code that extracts the UUID filename from the ExternalFile if managed, or null.
-- [ ] Task 2.3: **Red** — Write test: generated `fromMap()` reconstructs `ExternalFile.fromManagedPath()` when column value is non-null.
-- [ ] Task 2.4: **Green** — In `fromMap()` generation, emit null check + `ExternalFile.fromManagedPath()` construction.
-- [ ] Task 2.5: **Red** — Write test: round-trip — model with ExternalFile serializes and deserializes correctly through `toMap`/`fromMap`.
-- [ ] Task 2.6: **Green** — Fix any edge cases in the round-trip.
+- [x] Task 2.1: **Red** — Write test: generated `toMap()` for an `ExternalFile?` field emits the UUID extraction logic (null-safe).
+- [x] Task 2.2: **Green** — In `toMap()` generation, emit code that extracts the UUID filename from the ExternalFile if managed, or null.
+- [x] Task 2.3: **Red** — Write test: generated `fromMap()` reconstructs `ExternalFile.fromManagedPath()` when column value is non-null.
+- [x] Task 2.4: **Green** — In `fromMap()` generation, emit null check + `ExternalFile.fromManagedPath()` construction.
+- [x] Task 2.5: **Red** — Write test: round-trip — model with ExternalFile serializes and deserializes correctly through `toMap`/`fromMap`.
+- [x] Task 2.6: **Green** — Fix any edge cases in the round-trip.
 
 ### Verification
 
-- [ ] Serialization/deserialization works correctly
-- [ ] Null ExternalFile handles both directions
+- [x] Serialization/deserialization works correctly
+- [x] Null ExternalFile handles both directions
 
 ---
 
@@ -54,22 +54,22 @@ Extend the generator to emit correct `TEXT` column definitions, `toMap()`/`fromM
 
 ### Tasks
 
-- [ ] Task 3.1: Generate a full model with mixed regular fields and ExternalFile fields; verify complete output matches hand-written test model format.
-- [ ] Task 3.2: Verify generated code compiles and works with the existing `ModelContext` ExternalFile persistence tests.
-- [ ] Task 3.3: **Refactor** — Clean up and document the ExternalFile detection logic.
+- [x] Task 3.1: Generate a full model with mixed regular fields and ExternalFile fields; verify complete output matches hand-written test model format.
+- [x] Task 3.2: Verify generated code compiles and works with the existing `ModelContext` ExternalFile persistence tests.
+- [x] Task 3.3: **Refactor** — Clean up and document the ExternalFile detection logic.
 
 ### Verification
 
-- [ ] `flutter test` in dartdata — all 120+ tests still pass
-- [ ] Generated output matches hand-written descriptor format
+- [x] `flutter test` in dartdata — all tests still pass
+- [x] Generated output matches hand-written descriptor format
 
 ---
 
 ## Final Verification
 
-- [ ] All acceptance criteria from spec met
-- [ ] ExternalFile fields fully handled by generator
-- [ ] `flutter test` passes with zero failures in both packages
+- [x] All acceptance criteria from spec met
+- [x] ExternalFile fields fully handled by generator
+- [x] `flutter test` passes with zero failures in both packages
 
 ---
 
