@@ -5,6 +5,9 @@
 **/.flutter-plugins-dependencies
 **/.packages
 
+# build_runner intermediate part files (combining_builder merges these into .g.dart)
+**/*.g.part
+
 # Package lock (library — consumers resolve their own)
 **/pubspec.lock
 
