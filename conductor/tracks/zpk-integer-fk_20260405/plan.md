@@ -3,7 +3,7 @@
 **Track ID:** zpk-integer-fk_20260405
 **Spec:** [spec.md](./spec.md)
 **Created:** 2026-04-05
-**Status:** [ ] Not Started
+**Status:** [~] In Progress
 
 ## Overview
 
@@ -16,21 +16,21 @@ Add the `getRelationshipIds()` method to `ModelDescriptor` and update hand-writt
 
 ### Tasks
 
-- [ ] Task 1.1: Add `getRelationshipIds()` to `ModelDescriptor` in `dartdata/lib/src/schema/schema.dart` — default empty implementation returning `const {}`
-- [ ] Task 1.2: Update `BucketListItem` model class to use `Trip? trip` object reference instead of `String? tripId`
-- [ ] Task 1.3: Update `BucketListItemDescriptor` — `ColumnType.integer` for `trip_id`, `fromMap` without tripId, add `getRelationshipIds` override
-- [ ] Task 1.4: Update `SubItem` model class to use `BucketListItem? bucketListItem` object reference
-- [ ] Task 1.5: Update `SubItemDescriptor` — `ColumnType.integer` for `bucket_list_item_id`, `fromMap` without bucketListItemId, add `getRelationshipIds` override
-- [ ] Task 1.6: Update `LivingAccommodation` model class to use `Trip? trip` object reference
-- [ ] Task 1.7: Update `LivingAccommodationDescriptor` — `ColumnType.integer` for `trip_id`, add `getRelationshipIds` override
-- [ ] Task 1.8: Update `DenyBucketListItemDescriptor` and `NoActionBucketListItemDescriptor` with same changes
-- [ ] Task 1.9: Update `$BucketListItem.tripId` and `$LivingAccommodation.tripId` QueryField statics from `QueryField<String>` to `QueryField<int>`
-- [ ] Task 1.10: Verify compilation with `flutter test --no-execute`
+- [x] Task 1.1: Add `getRelationshipIds()` to `ModelDescriptor` in `dartdata/lib/src/schema/schema.dart` — default empty implementation returning `const {}`
+- [x] Task 1.2: Update `BucketListItem` model class to use `Trip? trip` object reference instead of `String? tripId`
+- [x] Task 1.3: Update `BucketListItemDescriptor` — `ColumnType.integer` for `trip_id`, `fromMap` without tripId, add `getRelationshipIds` override
+- [x] Task 1.4: Update `SubItem` model class to use `BucketListItem? bucketListItem` object reference
+- [x] Task 1.5: Update `SubItemDescriptor` — `ColumnType.integer` for `bucket_list_item_id`, `fromMap` without bucketListItemId, add `getRelationshipIds` override
+- [x] Task 1.6: Update `LivingAccommodation` model class to use `Trip? trip` object reference
+- [x] Task 1.7: Update `LivingAccommodationDescriptor` — `ColumnType.integer` for `trip_id`, add `getRelationshipIds` override
+- [x] Task 1.8: Update `DenyBucketListItemDescriptor` and `NoActionBucketListItemDescriptor` with same changes
+- [x] Task 1.9: Update `$BucketListItem.tripId` and `$LivingAccommodation.tripId` QueryField statics from `QueryField<String>` to `QueryField<int>`
+- [x] Task 1.10: Verify compilation with `dart analyze`
 
 ### Verification
 
-- [ ] Compilation succeeds (runtime tests may fail until ModelContext is updated)
-- [ ] `getRelationshipIds()` exists on `ModelDescriptor` with default empty map
+- [x] Compilation succeeds (runtime tests may fail until ModelContext is updated)
+- [x] `getRelationshipIds()` exists on `ModelDescriptor` with default empty map
 
 ## Phase 2: ModelContext FK Resolution
 

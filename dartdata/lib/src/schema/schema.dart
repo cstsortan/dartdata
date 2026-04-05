@@ -105,6 +105,16 @@ abstract class ModelDescriptor {
   /// Returns `null` if the field is null or the model has no ExternalFile
   /// fields. Override in descriptors that declare [externalFileFields].
   ExternalFile? getExternalFile(Object model, String fieldName) => null;
+
+  /// Returns a map of FK column name → related object's UUID for [model].
+  ///
+  /// Used by [ModelContext] to resolve each UUID to the related row's
+  /// `z_pk` integer before executing INSERT/UPDATE. The related table
+  /// is looked up from [relationships] by matching [fkColumnName].
+  ///
+  /// Override in descriptors that have relationship FK columns.
+  /// Returns an empty map by default.
+  Map<String, String?> getRelationshipIds(Object model) => const {};
 }
 
 /// Describes a single SQLite column derived from a `@model` field.
