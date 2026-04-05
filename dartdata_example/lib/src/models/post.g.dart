@@ -96,6 +96,7 @@ class _PostDescriptor extends ModelDescriptor {
   @override
   List<String> get externalFileFields => [];
 
+  @override
   Post fromMap(Map<String, Object?> row) {
     return Post(
       id: row['id'] as String,
@@ -107,16 +108,20 @@ class _PostDescriptor extends ModelDescriptor {
       isDraft: (row['is_draft'] as int) != 0,
     );
   }
+
+  @override
+  Map<String, Object?> toMap(Object model) {
+    final m = model as Post;
+    return {
+      'id': m.id,
+      'title': m.title,
+      'body_text': m.body,
+      'published_at': m.publishedAt.toUtc().millisecondsSinceEpoch,
+      'is_draft': m.isDraft ? 1 : 0,
+    };
+  }
 }
 
 extension PostPersistence on Post {
   static final ModelDescriptor descriptor = _PostDescriptor();
-
-  Map<String, Object?> toMap() => {
-        'id': id,
-        'title': title,
-        'body_text': body,
-        'published_at': publishedAt.toUtc().millisecondsSinceEpoch,
-        'is_draft': isDraft ? 1 : 0,
-      };
 }

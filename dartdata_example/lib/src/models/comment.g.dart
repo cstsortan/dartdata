@@ -80,6 +80,7 @@ class _CommentDescriptor extends ModelDescriptor {
   @override
   List<String> get externalFileFields => [];
 
+  @override
   Comment fromMap(Map<String, Object?> row) {
     return Comment(
       id: row['id'] as String,
@@ -88,14 +89,18 @@ class _CommentDescriptor extends ModelDescriptor {
           isUtc: true),
     );
   }
+
+  @override
+  Map<String, Object?> toMap(Object model) {
+    final m = model as Comment;
+    return {
+      'id': m.id,
+      'text': m.text,
+      'created_at': m.createdAt.toUtc().millisecondsSinceEpoch,
+    };
+  }
 }
 
 extension CommentPersistence on Comment {
   static final ModelDescriptor descriptor = _CommentDescriptor();
-
-  Map<String, Object?> toMap() => {
-        'id': id,
-        'text': text,
-        'created_at': createdAt.toUtc().millisecondsSinceEpoch,
-      };
 }

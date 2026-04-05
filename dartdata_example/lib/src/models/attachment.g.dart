@@ -81,6 +81,7 @@ class _AttachmentDescriptor extends ModelDescriptor {
         'data',
       ];
 
+  @override
   Attachment fromMap(Map<String, Object?> row) {
     return Attachment(
       id: row['id'] as String,
@@ -90,14 +91,29 @@ class _AttachmentDescriptor extends ModelDescriptor {
           : null,
     );
   }
+
+  @override
+  Map<String, Object?> toMap(Object model) {
+    final m = model as Attachment;
+    return {
+      'id': m.id,
+      'filename': m.filename,
+      'data': null,
+    };
+  }
+
+  @override
+  ExternalFile? getExternalFile(Object model, String fieldName) {
+    final m = model as Attachment;
+    switch (fieldName) {
+      case 'data':
+        return m.data;
+      default:
+        return null;
+    }
+  }
 }
 
 extension AttachmentPersistence on Attachment {
   static final ModelDescriptor descriptor = _AttachmentDescriptor();
-
-  Map<String, Object?> toMap() => {
-        'id': id,
-        'filename': filename,
-        'data': null,
-      };
 }

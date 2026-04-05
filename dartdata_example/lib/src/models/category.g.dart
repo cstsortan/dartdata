@@ -71,19 +71,24 @@ class _CategoryDescriptor extends ModelDescriptor {
   @override
   List<String> get externalFileFields => [];
 
+  @override
   Category fromMap(Map<String, Object?> row) {
     return Category(
       id: row['id'] as String,
       name: row['name'] as String,
     );
   }
+
+  @override
+  Map<String, Object?> toMap(Object model) {
+    final m = model as Category;
+    return {
+      'id': m.id,
+      'name': m.name,
+    };
+  }
 }
 
 extension CategoryPersistence on Category {
   static final ModelDescriptor descriptor = _CategoryDescriptor();
-
-  Map<String, Object?> toMap() => {
-        'id': id,
-        'name': name,
-      };
 }

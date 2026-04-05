@@ -72,6 +72,7 @@ class _AuthorDescriptor extends ModelDescriptor {
         'photo',
       ];
 
+  @override
   Author fromMap(Map<String, Object?> row) {
     return Author(
       id: row['id'] as String,
@@ -82,15 +83,30 @@ class _AuthorDescriptor extends ModelDescriptor {
           : null,
     );
   }
+
+  @override
+  Map<String, Object?> toMap(Object model) {
+    final m = model as Author;
+    return {
+      'id': m.id,
+      'name': m.name,
+      'email': m.email,
+      'photo': null,
+    };
+  }
+
+  @override
+  ExternalFile? getExternalFile(Object model, String fieldName) {
+    final m = model as Author;
+    switch (fieldName) {
+      case 'photo':
+        return m.photo;
+      default:
+        return null;
+    }
+  }
 }
 
 extension AuthorPersistence on Author {
   static final ModelDescriptor descriptor = _AuthorDescriptor();
-
-  Map<String, Object?> toMap() => {
-        'id': id,
-        'name': name,
-        'email': email,
-        'photo': null,
-      };
 }

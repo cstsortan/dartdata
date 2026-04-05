@@ -36,13 +36,13 @@ Write integration tests for database container setup and basic CRUD operations.
 
 ### Tasks
 
-- [ ] Task 2.1: Create `test/container_test.dart` — verify WAL mode enabled, foreign keys ON, z_pk/z_opt system columns present, all tables created from schema
-- [ ] Task 2.2: Create `test/crud_test.dart` — insert, fetch, fetchOne, update, delete for each model; verify z_opt increments on update
+- [x] Task 2.1: Create `test/container_test.dart` — verify WAL mode enabled, foreign keys ON, z_pk/z_opt system columns present, all tables created from schema
+- [x] Task 2.2: Create `test/crud_test.dart` — insert, fetch, fetchOne, update, delete for each model; verify z_opt increments on update
 
 ### Verification
 
-- [ ] `dart test test/container_test.dart` passes
-- [ ] `dart test test/crud_test.dart` passes
+- [x] `flutter test test/container_test.dart` passes (10 tests)
+- [x] `flutter test test/crud_test.dart` passes (18 tests)
 
 ## Phase 3: Query Tests
 

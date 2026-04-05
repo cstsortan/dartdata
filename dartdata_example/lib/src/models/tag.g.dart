@@ -74,19 +74,24 @@ class _TagDescriptor extends ModelDescriptor {
         ),
       ];
 
+  @override
   Tag fromMap(Map<String, Object?> row) {
     return Tag(
       id: row['id'] as String,
       name: row['name'] as String,
     );
   }
+
+  @override
+  Map<String, Object?> toMap(Object model) {
+    final m = model as Tag;
+    return {
+      'id': m.id,
+      'name': m.name,
+    };
+  }
 }
 
 extension TagPersistence on Tag {
   static final ModelDescriptor descriptor = _TagDescriptor();
-
-  Map<String, Object?> toMap() => {
-        'id': id,
-        'name': name,
-      };
 }

@@ -87,20 +87,27 @@ class _PostTagDescriptor extends ModelDescriptor {
   @override
   List<String> get externalFileFields => [];
 
+  @override
   PostTag fromMap(Map<String, Object?> row) {
     return PostTag(
       id: row['id'] as String,
-      pinnedAt: DateTime.fromMillisecondsSinceEpoch(row['pinned_at'] as int,
-          isUtc: true),
+      pinnedAt: row['pinned_at'] != null
+          ? DateTime.fromMillisecondsSinceEpoch(row['pinned_at'] as int,
+              isUtc: true)
+          : null,
     );
+  }
+
+  @override
+  Map<String, Object?> toMap(Object model) {
+    final m = model as PostTag;
+    return {
+      'id': m.id,
+      'pinned_at': m.pinnedAt?.toUtc().millisecondsSinceEpoch,
+    };
   }
 }
 
 extension PostTagPersistence on PostTag {
   static final ModelDescriptor descriptor = _PostTagDescriptor();
-
-  Map<String, Object?> toMap() => {
-        'id': id,
-        'pinned_at': pinnedAt?.toUtc().millisecondsSinceEpoch,
-      };
 }
