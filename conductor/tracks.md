@@ -24,4 +24,7 @@
 | [ ] | document-mode_20260405 | Document Mode | 2026-04-05 | 2026-04-05 |
 | [ ] | error-handling_20260405 | Error Handling & Edge Cases | 2026-04-05 | 2026-04-05 |
 
+| | | **Tier 5 — Integration Testing** | | |
+| [ ] | example-package_20260405 | dartdata_example Integration Package | 2026-04-05 | 2026-04-05 |
+
 <!-- Tracks registered by /conductor:new-track -->

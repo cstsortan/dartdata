@@ -14,6 +14,8 @@ Navigation hub for project context.
 
 - [test-suite_20260405 — Full Validation Test Suite](./tracks/test-suite_20260405/index.md) — Pending
 
+- [example-package_20260405 — dartdata_example Integration Package](./tracks/example-package_20260405/index.md) — Pending
+
 <!-- Auto-populated by /conductor:new-track -->
 
 ## Getting Started
