@@ -1,6 +1,5 @@
 import 'package:analyzer/dart/element/element.dart';
 import 'package:build/build.dart';
-import 'package:dartdata/src/annotations/model.dart';
 import 'package:dartdata/src/schema/schema.dart';
 import 'package:source_gen/source_gen.dart';
 
@@ -160,7 +159,9 @@ class _FieldInfo {
     );
   }
 
-  static const _attributeChecker = TypeChecker.fromRuntime(attribute);
+  static const _attributeChecker = TypeChecker.fromUrl(
+    'package:dartdata/src/annotations/model.dart#attribute',
+  );
 
   String get queryFieldDeclaration {
     final valueType = _queryFieldType();
