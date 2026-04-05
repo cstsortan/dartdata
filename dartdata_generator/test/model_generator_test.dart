@@ -15,6 +15,8 @@ Future<ClassElement> _resolveClass(String source, String className) async {
       'dartdata|lib/src/annotations/model.dart': useAssetReader,
       'dartdata|lib/src/annotations/relationship.dart': useAssetReader,
       'dartdata|lib/src/schema/schema.dart': useAssetReader,
+      'dartdata|lib/src/storage/external_file.dart': useAssetReader,
+      'dartdata|lib/dartdata.dart': useAssetReader,
       'test_lib|lib/model.dart': source,
     },
     (resolver) async {
@@ -644,6 +646,133 @@ void main() {
       expect(output, contains("'_apple_zebra'"));
       // Not the reverse order
       expect(output, isNot(contains("'_zebra_apple'")));
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Phase 8: ExternalFile Field Handling
+  // -------------------------------------------------------------------------
+
+  group('Phase 8: ExternalFile field handling', () {
+    test('8.1: ExternalFile? produces TEXT column with isNullable: true',
+        () async {
+      final cls = await _resolveClass(
+        '''
+        import 'package:dartdata/src/annotations/model.dart';
+        import 'package:dartdata/src/storage/external_file.dart';
+
+        @model
+        class Photo {
+          @attribute(primaryKey: true)
+          final String id;
+          String title;
+          ExternalFile? imageData;
+
+          Photo({required this.id, required this.title, this.imageData});
+        }
+        ''',
+        'Photo',
+      );
+
+      final output = _generate(cls);
+
+      // ExternalFile? should produce a TEXT column
+      expect(
+        output,
+        contains(RegExp(r"columnName: 'image_data'.*type: ColumnType\.text")),
+      );
+      // Should be nullable
+      expect(
+        output,
+        contains(RegExp(r"columnName: 'image_data'.*isNullable: true")),
+      );
+    });
+
+    test('8.2: non-nullable ExternalFile produces isNullable: false column',
+        () async {
+      final cls = await _resolveClass(
+        '''
+        import 'package:dartdata/src/annotations/model.dart';
+        import 'package:dartdata/src/storage/external_file.dart';
+
+        @model
+        class Document {
+          @attribute(primaryKey: true)
+          final String id;
+          ExternalFile content;
+
+          Document({required this.id, required this.content});
+        }
+        ''',
+        'Document',
+      );
+
+      final output = _generate(cls);
+
+      expect(
+        output,
+        contains(RegExp(r"columnName: 'content'.*isNullable: false")),
+      );
+    });
+
+    test('8.3: ExternalFile fields appear in externalFileFields list',
+        () async {
+      final cls = await _resolveClass(
+        '''
+        import 'package:dartdata/src/annotations/model.dart';
+        import 'package:dartdata/src/storage/external_file.dart';
+
+        @model
+        class Photo {
+          @attribute(primaryKey: true)
+          final String id;
+          String title;
+          ExternalFile? imageData;
+
+          Photo({required this.id, required this.title, this.imageData});
+        }
+        ''',
+        'Photo',
+      );
+
+      final output = _generate(cls);
+
+      // externalFileFields should contain 'image_data'
+      expect(output, contains("externalFileFields"));
+      expect(
+        output,
+        contains(RegExp(r"externalFileFields\s*=>\s*\[\s*'image_data'")),
+      );
+    });
+
+    test('8.4: ExternalFile fields do NOT generate QueryField statics',
+        () async {
+      final cls = await _resolveClass(
+        '''
+        import 'package:dartdata/src/annotations/model.dart';
+        import 'package:dartdata/src/storage/external_file.dart';
+
+        @model
+        class Photo {
+          @attribute(primaryKey: true)
+          final String id;
+          String title;
+          ExternalFile? imageData;
+
+          Photo({required this.id, required this.title, this.imageData});
+        }
+        ''',
+        'Photo',
+      );
+
+      final output = _generate(cls);
+
+      // Should have QueryField for title
+      expect(output, contains("QueryField<String>('title')"));
+      // Should NOT have QueryField for imageData / image_data
+      expect(output, isNot(contains("imageDataField")));
+      expect(output, isNot(contains("image_dataField")));
+      expect(output, isNot(contains("QueryField<String>('image_data')")));
     });
   });
 

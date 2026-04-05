@@ -55,7 +55,7 @@ class ModelGenerator extends GeneratorForAnnotation<_Model> {
 
 /// Type-safe query field descriptors for [$className].
 abstract class \$$className {
-${fields.map((f) => "  static final ${f.queryFieldDeclaration}").join('\n')}
+${fields.where((f) => !f.isExternalFile).map((f) => "  static final ${f.queryFieldDeclaration}").join('\n')}
 }
 
 /// [ModelDescriptor] for [$className]. Registered via [Schema].
@@ -79,7 +79,7 @@ ${relationships.map((r) => "    ${r.relationshipDefinition},").join('\n')}
 
   @override
   List<String> get externalFileFields => [
-${fields.where((f) => f.isExternalFile).map((f) => "    '${f.name}',").join('\n')}
+${fields.where((f) => f.isExternalFile).map((f) => "    '${f.columnName}',").join('\n')}
   ];
 ${junctionTables.isNotEmpty ? '''
 
