@@ -777,6 +777,112 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
+  // Phase 9: ExternalFile Serialization (toMap / fromMap)
+  // -------------------------------------------------------------------------
+
+  group('Phase 9: ExternalFile serialization', () {
+    test('9.1: toMap() for ExternalFile? emits null (UUID injected by ModelContext)',
+        () async {
+      final cls = await _resolveClass(
+        '''
+        import 'package:dartdata/src/annotations/model.dart';
+        import 'package:dartdata/src/storage/external_file.dart';
+
+        @model
+        class Photo {
+          @attribute(primaryKey: true)
+          final String id;
+          String title;
+          ExternalFile? imageData;
+
+          Photo({required this.id, required this.title, this.imageData});
+        }
+        ''',
+        'Photo',
+      );
+
+      final output = _generate(cls);
+
+      // toMap should emit null for ExternalFile (UUID is injected by _persistExternalFiles)
+      expect(
+        output,
+        contains(RegExp(r"'image_data':\s*null")),
+      );
+    });
+
+    test('9.2: fromMap() reconstructs ExternalFile.fromManagedPath when non-null',
+        () async {
+      final cls = await _resolveClass(
+        '''
+        import 'package:dartdata/src/annotations/model.dart';
+        import 'package:dartdata/src/storage/external_file.dart';
+
+        @model
+        class Photo {
+          @attribute(primaryKey: true)
+          final String id;
+          String title;
+          ExternalFile? imageData;
+
+          Photo({required this.id, required this.title, this.imageData});
+        }
+        ''',
+        'Photo',
+      );
+
+      final output = _generate(cls);
+
+      // fromMap should check for null and construct ExternalFile.fromManagedPath
+      expect(output, contains('ExternalFile.fromManagedPath'));
+      expect(
+        output,
+        contains(RegExp(r"row\['image_data'\]\s*!=\s*null")),
+      );
+    });
+
+    test('9.3: round-trip — model with ExternalFile and regular fields serializes correctly',
+        () async {
+      final cls = await _resolveClass(
+        '''
+        import 'package:dartdata/src/annotations/model.dart';
+        import 'package:dartdata/src/storage/external_file.dart';
+
+        @model
+        class Document {
+          @attribute(primaryKey: true)
+          final String id;
+          String title;
+          ExternalFile? attachment;
+          int pageCount;
+
+          Document({
+            required this.id,
+            required this.title,
+            this.attachment,
+            required this.pageCount,
+          });
+        }
+        ''',
+        'Document',
+      );
+
+      final output = _generate(cls);
+
+      // toMap: regular fields serialized normally, ExternalFile emits null
+      expect(output, contains("'id': id"));
+      expect(output, contains("'title': title"));
+      expect(output, contains("'page_count': pageCount"));
+      expect(output, contains(RegExp(r"'attachment':\s*null")));
+
+      // fromMap: regular fields deserialized normally, ExternalFile uses fromManagedPath
+      expect(output, contains("id: row['id'] as String"));
+      expect(output, contains("title: row['title'] as String"));
+      expect(output, contains("pageCount: row['page_count'] as int"));
+      expect(output, contains("ExternalFile.fromManagedPath"));
+    });
+  });
+
+  // -------------------------------------------------------------------------
   // Phase 7: Integration — Mixed Relationship Types
   // -------------------------------------------------------------------------
 
