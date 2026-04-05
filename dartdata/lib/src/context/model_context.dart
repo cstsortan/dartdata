@@ -32,6 +32,9 @@ class ModelContext {
     for (final d in container.schema.descriptors) d.modelType: d,
   };
 
+  /// Version cache: `tableName:id` → z_opt value at fetch time.
+  final Map<String, int> _versions = {};
+
   /// Reverse relationship index: parent tableName → list of (child descriptor, relationship).
   /// Pre-computed to avoid O(D*R) scan per delete.
   late final Map<String, List<_ChildRelationship>> _reverseRelationships = _buildReverseIndex();
@@ -68,6 +71,7 @@ class ModelContext {
     if (_pending.isEmpty) return;
 
     final db = container.db;
+    final versionSnapshot = Map<String, int>.of(_versions);
     db.execute('BEGIN');
 
     try {
@@ -88,6 +92,9 @@ class ModelContext {
       db.execute('COMMIT');
     } catch (e) {
       db.execute('ROLLBACK');
+      _versions
+        ..clear()
+        ..addAll(versionSnapshot);
       rethrow;
     }
 
@@ -119,11 +126,45 @@ class ModelContext {
         // Persist any staged ExternalFile fields first.
         await _persistExternalFiles(op.model, descriptor, map);
 
+        final id = map['id'] as String;
+        final vKey = '${descriptor.tableName}:$id';
+
+        // Check for optimistic lock conflict if we have a cached version.
+        final cachedVersion = _versions[vKey];
+        if (cachedVersion != null) {
+          // Verify the row hasn't been modified since we last fetched it.
+          final currentRow = db.select(
+            'SELECT z_opt FROM ${descriptor.tableName} WHERE id = ?',
+            [id],
+          );
+          if (currentRow.isNotEmpty) {
+            final currentVersion = currentRow.first['z_opt'] as int;
+            if (currentVersion != cachedVersion) {
+              throw OptimisticLockError(
+                modelType: descriptor.modelClassName,
+                id: id,
+                expectedVersion: cachedVersion,
+                actualVersion: currentVersion,
+              );
+            }
+          }
+        }
+
         // Build values in descriptor column order for the cached template.
         final values = descriptor.columns
             .map((col) => map[col.columnName])
             .toList();
         db.execute(templates.insert, values);
+
+        // After ON CONFLICT upsert, z_opt may have been incremented.
+        // Read current z_opt from the database.
+        final vRow = db.select(
+          'SELECT z_opt FROM ${descriptor.tableName} WHERE id = ?',
+          [id],
+        );
+        if (vRow.isNotEmpty) {
+          _versions[vKey] = vRow.first['z_opt'] as int;
+        }
 
       case _OperationType.update:
         await _persistExternalFiles(op.model, descriptor, map);
@@ -159,7 +200,13 @@ class ModelContext {
       query.where?.arguments ?? [],
     );
 
-    return rows.map((row) => descriptor.fromMap(row) as T).toList();
+    return rows.map((row) {
+      final obj = descriptor.fromMap(row) as T;
+      final id = row['id'] as String;
+      final zOpt = row['z_opt'] as int;
+      _versions['${descriptor.tableName}:$id'] = zOpt;
+      return obj;
+    }).toList();
   }
 
   /// Fetch the first object matching [query], or `null` if none exists.
@@ -181,7 +228,10 @@ class ModelContext {
       [id],
     );
     if (rows.isEmpty) return null;
-    return descriptor.fromMap(rows.first) as T;
+    final row = rows.first;
+    final zOpt = row['z_opt'] as int;
+    _versions['${descriptor.tableName}:$id'] = zOpt;
+    return descriptor.fromMap(row) as T;
   }
 
   /// Fetch related objects through a declared relationship.
@@ -268,6 +318,15 @@ class ModelContext {
   // -------------------------------------------------------------------------
   // Change observation
   // -------------------------------------------------------------------------
+
+  /// Returns the z_opt version for the object of type [T] with the given [id].
+  ///
+  /// Returns `null` if the version is not tracked (object was never fetched or
+  /// saved through this context).
+  int? versionOf<T>(String id) {
+    final descriptor = _descriptorForType<T>();
+    return _versions['${descriptor.tableName}:$id'];
+  }
 
   /// Listen to changes made by [save] on this context.
   ///
@@ -515,6 +574,27 @@ class _SqlTemplates {
       delete: 'DELETE FROM ${d.tableName} WHERE id = ?',
     );
   }
+}
+
+/// Thrown when a save fails because the row was modified by another context
+/// since it was fetched.
+class OptimisticLockError extends Error {
+  final String modelType;
+  final String id;
+  final int expectedVersion;
+  final int actualVersion;
+
+  OptimisticLockError({
+    required this.modelType,
+    required this.id,
+    required this.expectedVersion,
+    required this.actualVersion,
+  });
+
+  @override
+  String toString() =>
+      'OptimisticLockError: $modelType(id=$id) expected z_opt=$expectedVersion '
+      'but found $actualVersion — the row was modified by another context.';
 }
 
 /// The set of changes reported after a successful [ModelContext.save].

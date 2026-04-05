@@ -2,18 +2,22 @@
   "id": "optimistic-locking_20260405",
   "title": "z_opt Optimistic Locking",
   "type": "feature",
-  "status": "pending",
+  "status": "complete",
   "created": "2026-04-05T00:00:00.000Z",
   "updated": "2026-04-05T00:00:00.000Z",
-  "current_phase": 0,
+  "current_phase": 3,
   "current_task": null,
   "phases": {
     "total": 3,
-    "completed": 0
+    "completed": 3
   },
   "tasks": {
     "total": 12,
-    "completed": 0
+    "completed": 12
   },
-  "commits": []
+  "commits": [
+    "89db991: feat(context): track z_opt version on fetch and after save",
+    "4014a1c: feat(context): add OptimisticLockError and conflict detection",
+    "f460a87: test(context): add edge case tests for optimistic locking"
+  ]
 }
