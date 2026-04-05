@@ -1,8 +1,6 @@
 // Hand-written test models that simulate what dartdata_generator would produce.
 // These allow us to write tests before the generator is built.
 
-import 'dart:io';
-
 import 'package:dartdata/dartdata.dart';
 
 // ---------------------------------------------------------------------------
@@ -138,5 +136,144 @@ class PhotoDescriptor extends ModelDescriptor {
         imageData: row['image_data'] != null
             ? ExternalFile.fromManagedPath(row['image_data'] as String)
             : null,
+      );
+}
+
+// ---------------------------------------------------------------------------
+// BucketListItem model (child of Trip, one-to-many)
+// ---------------------------------------------------------------------------
+
+class BucketListItem {
+  final String id;
+  String title;
+  bool isInBucket;
+  String? tripId; // foreign key to Trip
+
+  BucketListItem({
+    required this.id,
+    required this.title,
+    this.isInBucket = false,
+    this.tripId,
+  });
+
+  Map<String, Object?> toMap() => {
+        'id': id,
+        'title': title,
+        'is_in_bucket': isInBucket ? 1 : 0,
+        'trip_id': tripId,
+      };
+}
+
+abstract class $BucketListItem {
+  static final title = QueryField<String>('title');
+  static final tripId = QueryField<String>('trip_id');
+}
+
+class BucketListItemDescriptor extends ModelDescriptor {
+  @override
+  String get tableName => 'bucket_list_item';
+
+  @override
+  String get modelClassName => 'BucketListItem';
+
+  @override
+  List<ColumnDefinition> get columns => [
+        const ColumnDefinition(
+            columnName: 'id',
+            type: ColumnType.text,
+            isPrimaryKey: true,
+            isNullable: false),
+        const ColumnDefinition(columnName: 'title', type: ColumnType.text),
+        const ColumnDefinition(
+            columnName: 'is_in_bucket', type: ColumnType.integer),
+        const ColumnDefinition(
+            columnName: 'trip_id', type: ColumnType.text, isNullable: true),
+      ];
+
+  @override
+  List<RelationshipDefinition> get relationships => [
+        const RelationshipDefinition(
+          fieldName: 'trip',
+          relatedTable: 'trip',
+          cardinality: RelationshipCardinality.toOne,
+          inverseFieldName: 'bucketList',
+          deleteRule: 'cascade',
+        ),
+      ];
+
+  @override
+  List<String> get externalFileFields => [];
+
+  BucketListItem fromMap(Map<String, Object?> row) => BucketListItem(
+        id: row['id'] as String,
+        title: row['title'] as String,
+        isInBucket: (row['is_in_bucket'] as int) == 1,
+        tripId: row['trip_id'] as String?,
+      );
+}
+
+// ---------------------------------------------------------------------------
+// LivingAccommodation model (one-to-one optional on Trip)
+// ---------------------------------------------------------------------------
+
+class LivingAccommodation {
+  final String id;
+  String address;
+  String? tripId; // foreign key to Trip
+
+  LivingAccommodation({
+    required this.id,
+    required this.address,
+    this.tripId,
+  });
+
+  Map<String, Object?> toMap() => {
+        'id': id,
+        'address': address,
+        'trip_id': tripId,
+      };
+}
+
+abstract class $LivingAccommodation {
+  static final address = QueryField<String>('address');
+  static final tripId = QueryField<String>('trip_id');
+}
+
+class LivingAccommodationDescriptor extends ModelDescriptor {
+  @override
+  String get tableName => 'living_accommodation';
+
+  @override
+  String get modelClassName => 'LivingAccommodation';
+
+  @override
+  List<ColumnDefinition> get columns => [
+        const ColumnDefinition(
+            columnName: 'id',
+            type: ColumnType.text,
+            isPrimaryKey: true,
+            isNullable: false),
+        const ColumnDefinition(columnName: 'address', type: ColumnType.text),
+        const ColumnDefinition(
+            columnName: 'trip_id', type: ColumnType.text, isNullable: true),
+      ];
+
+  @override
+  List<RelationshipDefinition> get relationships => [
+        const RelationshipDefinition(
+          fieldName: 'trip',
+          relatedTable: 'trip',
+          cardinality: RelationshipCardinality.toOne,
+          deleteRule: 'nullify',
+        ),
+      ];
+
+  @override
+  List<String> get externalFileFields => [];
+
+  LivingAccommodation fromMap(Map<String, Object?> row) => LivingAccommodation(
+        id: row['id'] as String,
+        address: row['address'] as String,
+        tripId: row['trip_id'] as String?,
       );
 }
