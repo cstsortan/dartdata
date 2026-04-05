@@ -124,7 +124,6 @@ void main() {
         final items = await context.fetch(Query<BucketListItem>());
         expect(items, isEmpty);
       },
-      skip: 'DeleteRule.cascade not yet implemented in ModelContext',
     );
   });
 

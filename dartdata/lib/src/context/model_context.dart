@@ -52,10 +52,19 @@ class ModelContext {
   Future<void> save() async {
     if (_pending.isEmpty) return;
 
+    // Enforce delete rules before opening the transaction.
+    // This may throw (deny), append cascade deletes, or queue nullify SQL.
+    final preDeleteSql = _enforceDeleteRules();
+
     final db = container.db;
     db.execute('BEGIN');
 
     try {
+      // Execute any nullify UPDATEs queued by delete rule enforcement.
+      for (final sql in preDeleteSql) {
+        db.execute(sql.statement, sql.arguments);
+      }
+
       for (final op in _pending) {
         await _execute(op, db);
       }
@@ -249,6 +258,90 @@ class ModelContext {
         '${container.blobDirectory.path}/$uuid');
   }
 
+  /// Enforce delete rules for all pending delete operations.
+  ///
+  /// Iterates pending deletes, looks up child descriptors that reference
+  /// the parent's table via [RelationshipDefinition], and dispatches to
+  /// rule-specific handlers. Returns SQL statements (e.g., nullify UPDATEs)
+  /// to be executed inside the transaction.
+  List<_DeferredSql> _enforceDeleteRules() {
+    final deferredSql = <_DeferredSql>[];
+
+    // Snapshot current deletes — cascade may append new ones, which we
+    // then process in subsequent iterations until no new deletes appear.
+    var i = 0;
+    while (i < _pending.length) {
+      final op = _pending[i];
+      i++;
+      if (op.type != _OperationType.delete) continue;
+
+      final parentDescriptor = _descriptorFor(op.model);
+      final parentMap = (op.model as dynamic).toMap() as Map<String, Object?>;
+      final parentId = parentMap['id'] as String;
+
+      for (final childDescriptor in container.schema.descriptors) {
+        for (final rel in childDescriptor.relationships) {
+          if (rel.relatedTable != parentDescriptor.tableName) continue;
+
+          final fkColumn = '${rel.fieldName}_id';
+
+          switch (rel.deleteRule) {
+            case 'cascade':
+              _cascadeDelete(childDescriptor, fkColumn, parentId);
+            case 'nullify':
+              deferredSql.add(_DeferredSql(
+                'UPDATE ${childDescriptor.tableName} SET $fkColumn = NULL WHERE $fkColumn = ?',
+                [parentId],
+              ));
+            case 'deny':
+              _denyDelete(childDescriptor, fkColumn, parentId);
+            case 'noAction':
+              break;
+          }
+        }
+      }
+    }
+
+    return deferredSql;
+  }
+
+  /// CASCADE: query child rows by FK, reconstruct models, add them as
+  /// pending deletes (which will recursively trigger their own rules).
+  void _cascadeDelete(
+    ModelDescriptor childDescriptor,
+    String fkColumn,
+    String parentId,
+  ) {
+    final rows = container.db.select(
+      'SELECT * FROM ${childDescriptor.tableName} WHERE $fkColumn = ?',
+      [parentId],
+    );
+
+    for (final row in rows) {
+      final childModel = (childDescriptor as dynamic).fromMap(row);
+      _pending.add(_PendingOperation(_OperationType.delete, childModel as Object));
+    }
+  }
+
+  /// DENY: throw [StateError] if any child rows reference the parent.
+  void _denyDelete(
+    ModelDescriptor childDescriptor,
+    String fkColumn,
+    String parentId,
+  ) {
+    final row = container.db.select(
+      'SELECT COUNT(*) as c FROM ${childDescriptor.tableName} WHERE $fkColumn = ?',
+      [parentId],
+    );
+    final count = row.first['c'] as int;
+    if (count > 0) {
+      throw StateError(
+        'Cannot delete: $count related row(s) exist in '
+        '${childDescriptor.tableName} (delete rule: deny)',
+      );
+    }
+  }
+
   ModelDescriptor _descriptorFor(Object model) {
     final typeName = model.runtimeType.toString();
     return container.schema.descriptors.firstWhere(
@@ -276,6 +369,12 @@ class ModelContext {
 // ---------------------------------------------------------------------------
 
 enum _OperationType { insert, update, delete }
+
+class _DeferredSql {
+  final String statement;
+  final List<Object?> arguments;
+  _DeferredSql(this.statement, this.arguments);
+}
 
 class _PendingOperation {
   final _OperationType type;
