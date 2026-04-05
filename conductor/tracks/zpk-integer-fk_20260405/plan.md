@@ -3,7 +3,7 @@
 **Track ID:** zpk-integer-fk_20260405
 **Spec:** [spec.md](./spec.md)
 **Created:** 2026-04-05
-**Status:** [~] In Progress
+**Status:** [x] Complete
 
 ## Overview
 
