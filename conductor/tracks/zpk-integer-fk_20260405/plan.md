@@ -96,17 +96,17 @@ Update the code generator to emit integer FK columns, null in `toMap()`, and `ge
 
 ### Tasks
 
-- [ ] Task 5.1: Change `fkColumnDefinition` in generator from `ColumnType.text` to `ColumnType.integer`
-- [ ] Task 5.2: Change `toMap()` emission to output `null` for FK columns (with comment)
-- [ ] Task 5.3: Add `_generateGetRelationshipIds` method to generator
-- [ ] Task 5.4: Emit `getRelationshipIds` in descriptor class output
-- [ ] Task 5.5: Verify generator compiles with `dart analyze`
+- [x] Task 5.1: Change `fkColumnDefinition` in generator from `ColumnType.text` to `ColumnType.integer`
+- [x] Task 5.2: Change `toMap()` emission to output `null` for FK columns (with comment)
+- [x] Task 5.3: Add `_generateGetRelationshipIds` method to generator
+- [x] Task 5.4: Emit `getRelationshipIds` in descriptor class output
+- [x] Task 5.5: Verify generator compiles with `dart analyze`
 
 ### Verification
 
-- [ ] Generator emits `ColumnType.integer` for FK columns
-- [ ] Generator emits `null` for FK values in `toMap()`
-- [ ] Generator emits `getRelationshipIds()` override for descriptors with FK relationships
+- [x] Generator emits `ColumnType.integer` for FK columns
+- [x] Generator emits `null` for FK values in `toMap()`
+- [x] Generator emits `getRelationshipIds()` override for descriptors with FK relationships
 
 ## Phase 6: Update Example Package
 
