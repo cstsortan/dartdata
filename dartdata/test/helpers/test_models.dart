@@ -227,6 +227,70 @@ class BucketListItemDescriptor extends ModelDescriptor {
       );
 }
 
+// ---------------------------------------------------------------------------
+// SubItem model (child of BucketListItem, for nested cascade testing)
+// ---------------------------------------------------------------------------
+
+class SubItem {
+  final String id;
+  String note;
+  String? bucketListItemId;
+
+  SubItem({
+    required this.id,
+    required this.note,
+    this.bucketListItemId,
+  });
+
+  Map<String, Object?> toMap() => {
+        'id': id,
+        'note': note,
+        'bucket_list_item_id': bucketListItemId,
+      };
+}
+
+class SubItemDescriptor extends ModelDescriptor {
+  @override
+  String get tableName => 'sub_item';
+
+  @override
+  String get modelClassName => 'SubItem';
+
+  @override
+  List<ColumnDefinition> get columns => [
+        const ColumnDefinition(
+            columnName: 'id',
+            type: ColumnType.text,
+            isPrimaryKey: true,
+            isNullable: false),
+        const ColumnDefinition(columnName: 'note', type: ColumnType.text),
+        const ColumnDefinition(
+            columnName: 'bucket_list_item_id',
+            type: ColumnType.text,
+            isNullable: true),
+      ];
+
+  @override
+  List<RelationshipDefinition> get relationships => [
+        const RelationshipDefinition(
+          fieldName: 'bucket_list_item',
+          relatedTable: 'bucket_list_item',
+          cardinality: RelationshipCardinality.toOne,
+          inverseFieldName: 'subItems',
+          deleteRule: 'cascade',
+        ),
+      ];
+
+  @override
+  List<String> get externalFileFields => [];
+
+  SubItem fromMap(Map<String, Object?> row) => SubItem(
+        id: row['id'] as String,
+        note: row['note'] as String,
+        bucketListItemId: row['bucket_list_item_id'] as String?,
+      );
+}
+
 /// Variant of [BucketListItemDescriptor] with `deleteRule: 'deny'` for testing.
 class DenyBucketListItemDescriptor extends ModelDescriptor {
   @override

@@ -348,4 +348,102 @@ void main() {
       expect(items, isEmpty);
     });
   });
+
+  // ---------------------------------------------------------------------------
+  // Edge cases
+  // ---------------------------------------------------------------------------
+  group('Edge cases', () {
+    test('nested cascade: Trip → BucketListItem → SubItem all deleted',
+        () async {
+      final nestedContainer = await ModelContainer.create(
+        schema: Schema([
+          TripDescriptor(),
+          BucketListItemDescriptor(),
+          SubItemDescriptor(),
+        ]),
+        configuration: const ModelConfiguration.inMemory(),
+      );
+      final ctx = ModelContext(nestedContainer);
+
+      final trip = Trip(
+        id: 'trip-nested',
+        name: 'Nested',
+        destination: 'D',
+        startDate: DateTime.utc(2026, 1, 1),
+        endDate: DateTime.utc(2026, 1, 2),
+      );
+      ctx.insert(trip);
+      ctx.insert(BucketListItem(
+          id: 'bli-n1', title: 'Parent Item', tripId: 'trip-nested'));
+      ctx.insert(SubItem(
+          id: 'sub-1', note: 'Sub note', bucketListItemId: 'bli-n1'));
+      await ctx.save();
+
+      ctx.delete(trip);
+      await ctx.save();
+
+      final items = await ctx.fetch(Query<BucketListItem>());
+      final subItems = await ctx.fetch(Query<SubItem>());
+      expect(items, isEmpty);
+      expect(subItems, isEmpty);
+
+      nestedContainer.close();
+    });
+
+    test('deleting a model with no relationships proceeds normally', () async {
+      // Photo has no relationships — just a plain model.
+      final photoContainer = await ModelContainer.create(
+        schema: Schema([PhotoDescriptor()]),
+        configuration: const ModelConfiguration.inMemory(),
+      );
+      final ctx = ModelContext(photoContainer);
+
+      final photo = Photo(id: 'p1', title: 'Sunset');
+      ctx.insert(photo);
+      await ctx.save();
+
+      ctx.delete(photo);
+      await ctx.save();
+
+      final photos = await ctx.fetch(Query<Photo>());
+      expect(photos, isEmpty);
+
+      photoContainer.close();
+    });
+
+    test('deny rule prevents delete and allows transaction rollback', () async {
+      final denyContainer = await ModelContainer.create(
+        schema: Schema([
+          TripDescriptor(),
+          DenyBucketListItemDescriptor(),
+        ]),
+        configuration: const ModelConfiguration.inMemory(),
+      );
+      final ctx = ModelContext(denyContainer);
+
+      final trip = Trip(
+        id: 'trip-deny-txn',
+        name: 'Deny Txn Trip',
+        destination: 'E',
+        startDate: DateTime.utc(2026, 1, 1),
+        endDate: DateTime.utc(2026, 1, 2),
+      );
+      ctx.insert(trip);
+      ctx.insert(BucketListItem(
+          id: 'bli-dt1', title: 'Block', tripId: 'trip-deny-txn'));
+      await ctx.save();
+
+      // Deny should throw before any SQL executes.
+      ctx.delete(trip);
+      expect(() async => await ctx.save(), throwsStateError);
+
+      // Trip and item should still exist after the failed save.
+      final trips = await ctx.fetch(Query<Trip>());
+      final items = await ctx.fetch(Query<BucketListItem>());
+      expect(trips.length, equals(1));
+      expect(items.length, equals(1));
+
+      denyContainer.close();
+    });
+  });
 }
