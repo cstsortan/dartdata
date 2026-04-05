@@ -212,6 +212,94 @@ class BucketListItemDescriptor extends ModelDescriptor {
       );
 }
 
+/// Variant of [BucketListItemDescriptor] with `deleteRule: 'deny'` for testing.
+class DenyBucketListItemDescriptor extends ModelDescriptor {
+  @override
+  String get tableName => 'bucket_list_item';
+
+  @override
+  String get modelClassName => 'BucketListItem';
+
+  @override
+  List<ColumnDefinition> get columns => [
+        const ColumnDefinition(
+            columnName: 'id',
+            type: ColumnType.text,
+            isPrimaryKey: true,
+            isNullable: false),
+        const ColumnDefinition(columnName: 'title', type: ColumnType.text),
+        const ColumnDefinition(
+            columnName: 'is_in_bucket', type: ColumnType.integer),
+        const ColumnDefinition(
+            columnName: 'trip_id', type: ColumnType.text, isNullable: true),
+      ];
+
+  @override
+  List<RelationshipDefinition> get relationships => [
+        const RelationshipDefinition(
+          fieldName: 'trip',
+          relatedTable: 'trip',
+          cardinality: RelationshipCardinality.toOne,
+          inverseFieldName: 'bucketList',
+          deleteRule: 'deny',
+        ),
+      ];
+
+  @override
+  List<String> get externalFileFields => [];
+
+  BucketListItem fromMap(Map<String, Object?> row) => BucketListItem(
+        id: row['id'] as String,
+        title: row['title'] as String,
+        isInBucket: (row['is_in_bucket'] as int) == 1,
+        tripId: row['trip_id'] as String?,
+      );
+}
+
+/// Variant of [BucketListItemDescriptor] with `deleteRule: 'noAction'` for testing.
+class NoActionBucketListItemDescriptor extends ModelDescriptor {
+  @override
+  String get tableName => 'bucket_list_item';
+
+  @override
+  String get modelClassName => 'BucketListItem';
+
+  @override
+  List<ColumnDefinition> get columns => [
+        const ColumnDefinition(
+            columnName: 'id',
+            type: ColumnType.text,
+            isPrimaryKey: true,
+            isNullable: false),
+        const ColumnDefinition(columnName: 'title', type: ColumnType.text),
+        const ColumnDefinition(
+            columnName: 'is_in_bucket', type: ColumnType.integer),
+        const ColumnDefinition(
+            columnName: 'trip_id', type: ColumnType.text, isNullable: true),
+      ];
+
+  @override
+  List<RelationshipDefinition> get relationships => [
+        const RelationshipDefinition(
+          fieldName: 'trip',
+          relatedTable: 'trip',
+          cardinality: RelationshipCardinality.toOne,
+          inverseFieldName: 'bucketList',
+          deleteRule: 'noAction',
+        ),
+      ];
+
+  @override
+  List<String> get externalFileFields => [];
+
+  BucketListItem fromMap(Map<String, Object?> row) => BucketListItem(
+        id: row['id'] as String,
+        title: row['title'] as String,
+        isInBucket: (row['is_in_bucket'] as int) == 1,
+        tripId: row['trip_id'] as String?,
+      );
+}
+
 // ---------------------------------------------------------------------------
 // LivingAccommodation model (one-to-one optional on Trip)
 // ---------------------------------------------------------------------------

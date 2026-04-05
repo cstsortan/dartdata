@@ -156,7 +156,6 @@ void main() {
         expect(accommodations.length, equals(1));
         expect(accommodations.first.tripId, isNull);
       },
-      skip: 'DeleteRule.nullify not yet implemented in ModelContext',
     );
   });
 
@@ -169,6 +168,16 @@ void main() {
     test(
       'deleting a Trip with related BucketListItems throws StateError',
       () async {
+        // Use a separate container with deny descriptor.
+        final denyContainer = await ModelContainer.create(
+          schema: Schema([
+            TripDescriptor(),
+            DenyBucketListItemDescriptor(),
+          ]),
+          configuration: const ModelConfiguration.inMemory(),
+        );
+        final denyContext = ModelContext(denyContainer);
+
         final trip = Trip(
           id: 'trip-deny',
           name: 'Deny Trip',
@@ -176,15 +185,62 @@ void main() {
           startDate: DateTime.utc(2026, 1, 1),
           endDate: DateTime.utc(2026, 1, 2),
         );
-        context.insert(trip);
-        context.insert(BucketListItem(
+        denyContext.insert(trip);
+        denyContext.insert(BucketListItem(
             id: 'bli-d1', title: 'Block delete', tripId: 'trip-deny'));
-        await context.save();
+        await denyContext.save();
 
-        context.delete(trip);
-        expect(() async => await context.save(), throwsStateError);
+        denyContext.delete(trip);
+        expect(() async => await denyContext.save(), throwsStateError);
+
+        denyContainer.close();
       },
-      skip: 'DeleteRule.deny not yet implemented in ModelContext',
+    );
+  });
+
+  // ---------------------------------------------------------------------------
+  // DeleteRule.noAction — delete parent, children become orphans
+  // ---------------------------------------------------------------------------
+  group('DeleteRule.noAction', () {
+    test(
+      'deleting a Trip leaves orphaned BucketListItems with stale FK',
+      () async {
+        // Use a separate container with noAction descriptor.
+        final noActionContainer = await ModelContainer.create(
+          schema: Schema([
+            TripDescriptor(),
+            NoActionBucketListItemDescriptor(),
+          ]),
+          configuration: const ModelConfiguration.inMemory(),
+        );
+        final noActionContext = ModelContext(noActionContainer);
+
+        final trip = Trip(
+          id: 'trip-noaction',
+          name: 'NoAction Trip',
+          destination: 'W',
+          startDate: DateTime.utc(2026, 1, 1),
+          endDate: DateTime.utc(2026, 1, 2),
+        );
+        noActionContext.insert(trip);
+        noActionContext.insert(BucketListItem(
+            id: 'bli-na1', title: 'Orphan Item', tripId: 'trip-noaction'));
+        await noActionContext.save();
+
+        noActionContext.delete(trip);
+        await noActionContext.save();
+
+        // Trip is gone.
+        final trips = await noActionContext.fetch(Query<Trip>());
+        expect(trips, isEmpty);
+
+        // BucketListItem still exists with stale FK.
+        final items = await noActionContext.fetch(Query<BucketListItem>());
+        expect(items.length, equals(1));
+        expect(items.first.tripId, equals('trip-noaction'));
+
+        noActionContainer.close();
+      },
     );
   });
 
