@@ -10,7 +10,7 @@
 | [x] | optimistic-locking_20260405 | z_opt Optimistic Locking | 2026-04-05 | 2026-04-05 |
 | | | | | |
 | | | **Tier 2 — Code Generator** | | |
-| [ ] | generator-attributes_20260405 | Generator — @attribute Annotation Reading | 2026-04-05 | 2026-04-05 |
+| [x] | generator-attributes_20260405 | Generator — @attribute Annotation Reading | 2026-04-05 | 2026-04-05 |
 | [ ] | generator-relationships_20260405 | Generator — Relationship Emission | 2026-04-05 | 2026-04-05 |
 | [ ] | generator-external-files_20260405 | Generator — ExternalFile Field Handling | 2026-04-05 | 2026-04-05 |
 | | | | | |

@@ -17,16 +17,16 @@ Set up the ability to read `@attribute` parameters from annotated fields.
 
 ### Tasks
 
-- [ ] Task 1.1: **Red** — Write generator test: a model with `@attribute(primaryKey: true)` on a field produces a `ColumnDefinition` with `isPrimaryKey: true`.
-- [ ] Task 1.2: **Green** — Implement `_readAttributeAnnotation(FieldElement)` helper that uses `ConstantReader` to extract `primaryKey`, `unique`, `indexed`, `columnName`, `transient` values. Return a data class or map of these values.
-- [ ] Task 1.3: **Red** — Write generator test: a field with no `@attribute` annotation produces default `ColumnDefinition` (all flags false, snake_case name).
-- [ ] Task 1.4: **Green** — Handle the null case (no annotation) gracefully with defaults.
-- [ ] Task 1.5: **Refactor** — Wire `_readAttributeAnnotation` into the existing column-generation loop.
+- [x] Task 1.1: **Red** — Write generator test: a model with `@attribute(primaryKey: true)` on a field produces a `ColumnDefinition` with `isPrimaryKey: true`.
+- [x] Task 1.2: **Green** — Implement `_readAttributeAnnotation(FieldElement)` helper that uses `ConstantReader` to extract `primaryKey`, `unique`, `indexed`, `columnName`, `transient` values. Return a data class or map of these values.
+- [x] Task 1.3: **Red** — Write generator test: a field with no `@attribute` annotation produces default `ColumnDefinition` (all flags false, snake_case name).
+- [x] Task 1.4: **Green** — Handle the null case (no annotation) gracefully with defaults.
+- [x] Task 1.5: **Refactor** — Wire `_readAttributeAnnotation` into the existing column-generation loop.
 
 ### Verification
 
-- [ ] Generator tests pass for both annotated and unannotated fields
-- [ ] Existing generator behavior preserved for fields without `@attribute`
+- [x] Generator tests pass for both annotated and unannotated fields
+- [x] Existing generator behavior preserved for fields without `@attribute`
 
 ---
 
@@ -36,19 +36,19 @@ Test and implement each parameter in isolation.
 
 ### Tasks
 
-- [ ] Task 2.1: **Red** — Write test: `@attribute(unique: true)` emits `isUnique: true` in ColumnDefinition.
-- [ ] Task 2.2: **Green** — Wire `unique` reading into column generation.
-- [ ] Task 2.3: **Red** — Write test: `@attribute(indexed: true)` emits `isIndexed: true`.
-- [ ] Task 2.4: **Green** — Wire `indexed` reading.
-- [ ] Task 2.5: **Red** — Write test: `@attribute(columnName: 'custom_col')` uses `'custom_col'` instead of snake_case field name.
-- [ ] Task 2.6: **Green** — Apply `columnName` override in both `ColumnDefinition` and `QueryField` static generation.
-- [ ] Task 2.7: **Red** — Write test: `@attribute(transient: true)` excludes the field from `columns`, `toMap()`, and `fromMap()`.
-- [ ] Task 2.8: **Green** — Skip transient fields in all three generation outputs.
+- [x] Task 2.1: **Red** — Write test: `@attribute(unique: true)` emits `isUnique: true` in ColumnDefinition.
+- [x] Task 2.2: **Green** — Wire `unique` reading into column generation.
+- [x] Task 2.3: **Red** — Write test: `@attribute(indexed: true)` emits `isIndexed: true`.
+- [x] Task 2.4: **Green** — Wire `indexed` reading.
+- [x] Task 2.5: **Red** — Write test: `@attribute(columnName: 'custom_col')` uses `'custom_col'` instead of snake_case field name.
+- [x] Task 2.6: **Green** — Apply `columnName` override in both `ColumnDefinition` and `QueryField` static generation.
+- [x] Task 2.7: **Red** — Write test: `@attribute(transient: true)` excludes the field from `columns`, `toMap()`, and `fromMap()`.
+- [x] Task 2.8: **Green** — Skip transient fields in all three generation outputs.
 
 ### Verification
 
-- [ ] Each parameter tested individually
-- [ ] `flutter test` in dartdata — all runtime tests still pass
+- [x] Each parameter tested individually
+- [x] `flutter test` in dartdata — all runtime tests still pass
 
 ---
 
@@ -56,26 +56,26 @@ Test and implement each parameter in isolation.
 
 ### Tasks
 
-- [ ] Task 3.1: **Red** — Write test: field with `@attribute(unique: true, indexed: true)` produces both flags.
-- [ ] Task 3.2: **Green** — Ensure multiple flags combine correctly.
-- [ ] Task 3.3: **Red** — Write integration test: generate a full model with mixed annotations, verify the complete output matches expectations.
-- [ ] Task 3.4: **Green** — Fix any edge cases in combined generation.
-- [ ] Task 3.5: **Refactor** — Clean up the generator code; ensure consistent formatting in generated output.
+- [x] Task 3.1: **Red** — Write test: field with `@attribute(unique: true, indexed: true)` produces both flags.
+- [x] Task 3.2: **Green** — Ensure multiple flags combine correctly.
+- [x] Task 3.3: **Red** — Write integration test: generate a full model with mixed annotations, verify the complete output matches expectations.
+- [x] Task 3.4: **Green** — Fix any edge cases in combined generation.
+- [x] Task 3.5: **Refactor** — Clean up the generator code; ensure consistent formatting in generated output.
 
 ### Verification
 
-- [ ] All generator tests pass
-- [ ] `flutter test` in dartdata — zero failures
-- [ ] Generated output for annotated models is correct and well-formatted
+- [x] All generator tests pass
+- [x] `flutter test` in dartdata — zero failures
+- [x] Generated output for annotated models is correct and well-formatted
 
 ---
 
 ## Final Verification
 
-- [ ] All acceptance criteria from spec met
-- [ ] Generator correctly reads all 5 `@attribute` parameters
-- [ ] Fields without `@attribute` maintain backward-compatible defaults
-- [ ] `flutter test` passes with zero failures in both packages
+- [x] All acceptance criteria from spec met
+- [x] Generator correctly reads all 5 `@attribute` parameters
+- [x] Fields without `@attribute` maintain backward-compatible defaults
+- [x] `flutter test` passes with zero failures in both packages
 
 ---
 
