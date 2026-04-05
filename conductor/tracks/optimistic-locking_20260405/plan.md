@@ -35,18 +35,18 @@ Detect when a concurrent write has changed the row since it was fetched.
 
 ### Tasks
 
-- [ ] Task 2.1: **Red** — Write test: create `OptimisticLockError` class with `modelType`, `id`, `expectedVersion`, `actualVersion` fields.
-- [ ] Task 2.2: **Green** — Implement `OptimisticLockError` extending `StateError` (or custom Exception).
-- [ ] Task 2.3: **Red** — Write test: two contexts fetch the same row, both mutate it, first save succeeds, second save throws `OptimisticLockError`.
-- [ ] Task 2.4: **Green** — After `UPDATE ... WHERE z_opt = ?`, check `db.getUpdatedRows()`. If 0, read the current `z_opt` and throw `OptimisticLockError` with expected vs actual values.
-- [ ] Task 2.5: **Red** — Write test: sequential (non-conflicting) updates succeed — fetch, save, fetch, save increments z_opt to 2.
-- [ ] Task 2.6: **Green** — Ensure the context updates its local version cache after a successful save.
+- [x] Task 2.1: **Red** — Write test: create `OptimisticLockError` class with `modelType`, `id`, `expectedVersion`, `actualVersion` fields.
+- [x] Task 2.2: **Green** — Implement `OptimisticLockError` extending `StateError` (or custom Exception).
+- [x] Task 2.3: **Red** — Write test: two contexts fetch the same row, both mutate it, first save succeeds, second save throws `OptimisticLockError`.
+- [x] Task 2.4: **Green** — After `UPDATE ... WHERE z_opt = ?`, check `db.getUpdatedRows()`. If 0, read the current `z_opt` and throw `OptimisticLockError` with expected vs actual values.
+- [x] Task 2.5: **Red** — Write test: sequential (non-conflicting) updates succeed — fetch, save, fetch, save increments z_opt to 2.
+- [x] Task 2.6: **Green** — Ensure the context updates its local version cache after a successful save.
 
 ### Verification
 
-- [ ] Conflict detection works: second writer fails
-- [ ] Sequential writes work: version increments correctly
-- [ ] `flutter test` — zero failures
+- [x] Conflict detection works: second writer fails
+- [x] Sequential writes work: version increments correctly
+- [x] `flutter test` — zero failures
 
 ---
 
