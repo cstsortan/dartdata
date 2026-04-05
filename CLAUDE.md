@@ -111,7 +111,7 @@ Dart macros were cancelled. Use `build_runner` + `source_gen` only.
 - [ ] `cleanOrphanedBlobs()` implementation
 - [ ] Relationship fetching (lazy loading of related objects)
 - [ ] `ModelConfiguration.document(directory:)` full implementation
-- [ ] `z_opt` conflict detection on update
+- [x] `z_opt` conflict detection on update
 
 ## Dependency notes
 

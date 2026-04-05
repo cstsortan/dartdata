@@ -3,7 +3,7 @@
 **Track ID:** optimistic-locking_20260405
 **Spec:** [spec.md](./spec.md)
 **Created:** 2026-04-05
-**Status:** [ ] Pending | [~] In Progress | [x] Complete
+**Status:** [x] Complete
 
 ## Overview
 
@@ -54,27 +54,27 @@ Detect when a concurrent write has changed the row since it was fetched.
 
 ### Tasks
 
-- [ ] Task 3.1: **Red** — Write test: inserting a new object (not an update) does not trigger version check — always succeeds with z_opt = 0.
-- [ ] Task 3.2: **Green** — Ensure INSERT path skips the `WHERE z_opt = ?` check.
-- [ ] Task 3.3: **Red** — Write test: `OptimisticLockError` inside a transaction causes full transaction rollback.
-- [ ] Task 3.4: **Green** — Ensure the error propagates through the transaction boundary.
-- [ ] Task 3.5: **Red** — Write test: deleting a row that was concurrently updated still succeeds (delete by id, not by version).
-- [ ] Task 3.6: **Green** — Confirm delete path does not check z_opt (only updates do).
+- [x] Task 3.1: **Red** — Write test: inserting a new object (not an update) does not trigger version check — always succeeds with z_opt = 0.
+- [x] Task 3.2: **Green** — Ensure INSERT path skips the `WHERE z_opt = ?` check.
+- [x] Task 3.3: **Red** — Write test: `OptimisticLockError` inside a transaction causes full transaction rollback.
+- [x] Task 3.4: **Green** — Ensure the error propagates through the transaction boundary.
+- [x] Task 3.5: **Red** — Write test: deleting a row that was concurrently updated still succeeds (delete by id, not by version).
+- [x] Task 3.6: **Green** — Confirm delete path does not check z_opt (only updates do).
 
 ### Verification
 
-- [ ] `flutter test` — all tests pass, zero failures
-- [ ] Edge cases handled cleanly
+- [x] `flutter test` — all tests pass, zero failures
+- [x] Edge cases handled cleanly
 
 ---
 
 ## Final Verification
 
-- [ ] All acceptance criteria from spec met
-- [ ] `flutter test` passes with zero failures
-- [ ] Optimistic locking works for concurrent updates
-- [ ] Sequential updates increment z_opt correctly
-- [ ] Inserts and deletes are unaffected
+- [x] All acceptance criteria from spec met
+- [x] `flutter test` passes with zero failures
+- [x] Optimistic locking works for concurrent updates
+- [x] Sequential updates increment z_opt correctly
+- [x] Inserts and deletes are unaffected
 
 ---
 
