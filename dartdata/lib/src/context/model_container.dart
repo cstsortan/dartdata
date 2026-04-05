@@ -327,6 +327,17 @@ class ModelContainer {
         ''');
       }
     }
+
+    // Create junction tables for many-to-many relationships.
+    for (final jt in descriptor.junctionTables) {
+      db.execute('''
+        CREATE TABLE IF NOT EXISTS ${jt.tableName} (
+          ${jt.firstFkColumn} INTEGER NOT NULL REFERENCES ${jt.firstTable}(z_pk),
+          ${jt.secondFkColumn} INTEGER NOT NULL REFERENCES ${jt.secondTable}(z_pk),
+          PRIMARY KEY (${jt.firstFkColumn}, ${jt.secondFkColumn})
+        )
+      ''');
+    }
   }
 
   String _sqlType(ColumnType type) => switch (type) {

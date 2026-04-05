@@ -89,6 +89,10 @@ abstract class ModelDescriptor {
   /// Used for O(1) descriptor lookup instead of string-based matching.
   Type get modelType;
 
+  /// Junction tables for simple many-to-many relationships.
+  /// Only the side that declares `inverse` emits the junction table.
+  List<JunctionTableDefinition> get junctionTables => const [];
+
   /// Reconstruct a model instance from a SQLite row map.
   Object fromMap(Map<String, Object?> row);
 }
@@ -144,6 +148,32 @@ class RelationshipDefinition {
 }
 
 enum RelationshipCardinality { toOne, toMany }
+
+/// Describes a hidden junction table for a simple many-to-many relationship.
+class JunctionTableDefinition {
+  /// The junction table name, e.g. `_actor_movie` (alphabetical, underscore prefix).
+  final String tableName;
+
+  /// FK column referencing the first table (alphabetical).
+  final String firstFkColumn;
+
+  /// The table the first FK references.
+  final String firstTable;
+
+  /// FK column referencing the second table (alphabetical).
+  final String secondFkColumn;
+
+  /// The table the second FK references.
+  final String secondTable;
+
+  const JunctionTableDefinition({
+    required this.tableName,
+    required this.firstFkColumn,
+    required this.firstTable,
+    required this.secondFkColumn,
+    required this.secondTable,
+  });
+}
 
 /// Controls how the [ModelContainer] handles schema differences between
 /// the current model definitions and what is on disk.

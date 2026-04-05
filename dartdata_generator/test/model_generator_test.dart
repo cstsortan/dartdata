@@ -509,6 +509,143 @@ void main() {
       expect(output, contains('isForeignKeySide: true'));
     });
   });
+
+  // -------------------------------------------------------------------------
+  // Phase 6: Many-to-Many Junction Tables
+  // -------------------------------------------------------------------------
+
+  group('Phase 6: many-to-many junction tables', () {
+    test('6.1: List<T> with inverse on both-sides-list generates junction table DDL',
+        () async {
+      final cls = await _resolveClass(
+        '''
+        import 'package:dartdata/src/annotations/model.dart';
+        import 'package:dartdata/src/annotations/relationship.dart';
+
+        @model
+        class Actor {
+          final String id;
+          String name;
+
+          @relationship()
+          List<Movie> movies;
+
+          Actor({required this.id, required this.name, required this.movies});
+        }
+
+        @model
+        class Movie {
+          @attribute(primaryKey: true)
+          final String id;
+          String title;
+
+          @relationship(inverse: 'movies')
+          List<Actor> actors;
+
+          Movie({required this.id, required this.title, required this.actors});
+        }
+        ''',
+        'Movie',
+      );
+
+      final output = _generate(cls);
+
+      // Should generate a junction table name in alphabetical order
+      expect(output, contains("'_actor_movie'"));
+      // Should reference both tables
+      expect(output, contains('actor_id'));
+      expect(output, contains('movie_id'));
+    });
+
+    test('6.3: explicit junction model does NOT generate hidden junction table',
+        () async {
+      final cls = await _resolveClass(
+        '''
+        import 'package:dartdata/src/annotations/model.dart';
+        import 'package:dartdata/src/annotations/relationship.dart';
+
+        @model
+        class Actor {
+          final String id;
+          String name;
+          Actor({required this.id, required this.name});
+        }
+
+        @model
+        class Movie {
+          @attribute(primaryKey: true)
+          final String id;
+          String title;
+
+          @relationship()
+          List<MovieRole> roles;
+
+          Movie({required this.id, required this.title, required this.roles});
+        }
+
+        @model
+        class MovieRole {
+          final String id;
+          String characterName;
+
+          @relationship()
+          Movie? movie;
+
+          @relationship()
+          Actor? actor;
+
+          MovieRole({required this.id, required this.characterName, this.movie, this.actor});
+        }
+        ''',
+        'Movie',
+      );
+
+      final output = _generate(cls);
+
+      // Should NOT contain any junction table DDL
+      expect(output, isNot(contains("'_")));
+    });
+
+    test('6.5: junction table name uses alphabetical order', () async {
+      final cls = await _resolveClass(
+        '''
+        import 'package:dartdata/src/annotations/model.dart';
+        import 'package:dartdata/src/annotations/relationship.dart';
+
+        @model
+        class Zebra {
+          final String id;
+          String name;
+
+          @relationship()
+          List<Apple> favoriteFruits;
+
+          Zebra({required this.id, required this.name, required this.favoriteFruits});
+        }
+
+        @model
+        class Apple {
+          @attribute(primaryKey: true)
+          final String id;
+          String variety;
+
+          @relationship(inverse: 'favoriteFruits')
+          List<Zebra> fans;
+
+          Apple({required this.id, required this.variety, required this.fans});
+        }
+        ''',
+        'Apple',
+      );
+
+      final output = _generate(cls);
+
+      // Alphabetical: apple comes before zebra
+      expect(output, contains("'_apple_zebra'"));
+      // Not the reverse order
+      expect(output, isNot(contains("'_zebra_apple'")));
+    });
+  });
 }
 
 /// Minimal [BuildStep] implementation for testing. The generator does not

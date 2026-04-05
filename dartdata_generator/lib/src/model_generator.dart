@@ -36,6 +36,14 @@ class ModelGenerator extends GeneratorForAnnotation<_Model> {
         .map((r) => r.fkColumnDefinition)
         .toList();
 
+    // Many-to-many: toMany + inverse set → junction table.
+    final junctionTables = relationships
+        .where((r) =>
+            r.cardinality == RelationshipCardinality.toMany &&
+            r.inverse != null)
+        .map((r) => r.junctionTableDefinition(tableName))
+        .toList();
+
     return '''
 // coverage:ignore-file
 // GENERATED CODE - DO NOT MODIFY BY HAND
@@ -73,6 +81,12 @@ ${relationships.map((r) => "    ${r.relationshipDefinition},").join('\n')}
   List<String> get externalFileFields => [
 ${fields.where((f) => f.isExternalFile).map((f) => "    '${f.name}',").join('\n')}
   ];
+${junctionTables.isNotEmpty ? '''
+
+  @override
+  List<JunctionTableDefinition> get junctionTables => [
+${junctionTables.map((jt) => "    $jt,").join('\n')}
+  ];''' : ''}
 
   $className fromMap(Map<String, Object?> row) {
     return $className(
@@ -320,6 +334,23 @@ class _RelationshipInfo {
     return "ColumnDefinition(columnName: '$fkColumnName', type: ColumnType.integer, "
         "isPrimaryKey: false, isUnique: false, isIndexed: false, "
         "isNullable: $isNullable)";
+  }
+
+  /// Generates a `JunctionTableDefinition(...)` string for many-to-many.
+  /// [ownerTable] is the table of the class that declares `inverse`.
+  String junctionTableDefinition(String ownerTable) {
+    // Alphabetical order for consistent naming.
+    final tables = [ownerTable, relatedTable]..sort();
+    final jtName = '_${tables[0]}_${tables[1]}';
+    final firstFk = '${tables[0]}_id';
+    final secondFk = '${tables[1]}_id';
+    return "JunctionTableDefinition("
+        "tableName: '$jtName', "
+        "firstFkColumn: '$firstFk', "
+        "firstTable: '${tables[0]}', "
+        "secondFkColumn: '$secondFk', "
+        "secondTable: '${tables[1]}', "
+        ")";
   }
 
   /// Generates a `RelationshipDefinition(...)` string.
