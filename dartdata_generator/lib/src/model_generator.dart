@@ -104,10 +104,11 @@ ${fields.map((f) => "      ${f.name}: ${f.fromMapExpression('row')},").join('\n'
     final m = model as $className;
     return {
 ${fields.map((f) => "      '${f.columnName}': ${f.toMapExpressionFor('m')},").join('\n')}
-${relationships.where((r) => r.cardinality == RelationshipCardinality.toOne).map((r) => "      '${r.fkColumnName}': m.${r.fieldName}${r.isNullable ? '?' : ''}.id,").join('\n')}
+${relationships.where((r) => r.cardinality == RelationshipCardinality.toOne).map((r) => "      '${r.fkColumnName}': null, // FK resolved by ModelContext via getRelationshipIds").join('\n')}
     };
   }
 ${_generateGetExternalFile(className, fields)}
+${_generateGetRelationshipIds(className, relationships)}
 }
 
 extension ${className}Persistence on $className {
@@ -154,6 +155,27 @@ extension ${className}Persistence on $className {
 $cases
       default: return null;
     }
+  }''';
+  }
+
+  static String _generateGetRelationshipIds(
+      String className, List<_RelationshipInfo> relationships) {
+    final fkRelationships = relationships
+        .where((r) => r.cardinality == RelationshipCardinality.toOne)
+        .toList();
+    if (fkRelationships.isEmpty) return '';
+    final entries = fkRelationships
+        .map((r) =>
+            "      '${r.fkColumnName}': m.${r.fieldName}${r.isNullable ? '?' : ''}.id,")
+        .join('\n');
+    return '''
+
+  @override
+  Map<String, String?> getRelationshipIds(Object model) {
+    final m = model as $className;
+    return {
+$entries
+    };
   }''';
   }
 
@@ -390,8 +412,9 @@ class _RelationshipInfo {
   String get fkColumnName => '${_toSnakeCase(fieldName)}_id';
 
   /// Generates a `ColumnDefinition(...)` string for the FK column.
+  /// FK columns use integer type (z_pk), not text (UUID).
   String get fkColumnDefinition {
-    return "ColumnDefinition(columnName: '$fkColumnName', type: ColumnType.text, "
+    return "ColumnDefinition(columnName: '$fkColumnName', type: ColumnType.integer, "
         "isPrimaryKey: false, isUnique: false, isIndexed: false, "
         "isNullable: $isNullable)";
   }

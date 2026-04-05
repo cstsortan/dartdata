@@ -65,10 +65,11 @@ void main() {
   });
 
   // ---------------------------------------------------------------------------
-  // Task 5.2: Insert Trip with BucketListItem, verify FK
+  // Task 5.2: Insert Trip with BucketListItem, verify FK stores z_pk integer
   // ---------------------------------------------------------------------------
   group('Relationship — foreign key storage', () {
-    test('BucketListItem FK matches Trip id after insert + save', () async {
+    test('BucketListItem FK stores Trip z_pk integer after insert + save',
+        () async {
       final trip = Trip(
         id: 'trip-1',
         name: 'Grand Tour',
@@ -77,19 +78,24 @@ void main() {
         endDate: DateTime.utc(2026, 8, 31),
       );
       context.insert(trip);
+      await context.save();
 
       final item = BucketListItem(
         id: 'bli-1',
         title: 'See Eiffel Tower',
-        tripId: 'trip-1',
+        trip: trip,
       );
       context.insert(item);
       await context.save();
 
-      // Fetch the BucketListItem and verify FK.
-      final items = await context.fetch(Query<BucketListItem>());
-      expect(items.length, equals(1));
-      expect(items.first.tripId, equals('trip-1'));
+      // Verify FK column stores an integer (Trip's z_pk), not a UUID string.
+      final rows = container.db.select(
+        "SELECT trip_id FROM bucket_list_item WHERE id = 'bli-1'",
+      );
+      expect(rows.first['trip_id'], isA<int>());
+
+      // The z_pk of trip-1 should be 1 (first inserted row).
+      expect(rows.first['trip_id'], equals(1));
     });
   });
 
@@ -111,10 +117,11 @@ void main() {
           endDate: DateTime.utc(2026, 1, 2),
         );
         context.insert(trip);
+        await context.save();
         context.insert(BucketListItem(
-            id: 'bli-c1', title: 'Item 1', tripId: 'trip-cascade'));
+            id: 'bli-c1', title: 'Item 1', trip: trip));
         context.insert(BucketListItem(
-            id: 'bli-c2', title: 'Item 2', tripId: 'trip-cascade'));
+            id: 'bli-c2', title: 'Item 2', trip: trip));
         await context.save();
 
         context.delete(trip);
@@ -144,17 +151,19 @@ void main() {
           endDate: DateTime.utc(2026, 1, 2),
         );
         context.insert(trip);
+        await context.save();
         context.insert(LivingAccommodation(
-            id: 'acc-1', address: '123 Main St', tripId: 'trip-nullify'));
+            id: 'acc-1', address: '123 Main St', trip: trip));
         await context.save();
 
         context.delete(trip);
         await context.save();
 
-        final accommodations =
-            await context.fetch(Query<LivingAccommodation>());
-        expect(accommodations.length, equals(1));
-        expect(accommodations.first.tripId, isNull);
+        // Verify FK is NULL in raw SQL after nullify.
+        final rows = container.db.select(
+          "SELECT trip_id FROM living_accommodation WHERE id = 'acc-1'",
+        );
+        expect(rows.first['trip_id'], isNull);
       },
     );
   });
@@ -186,8 +195,9 @@ void main() {
           endDate: DateTime.utc(2026, 1, 2),
         );
         denyContext.insert(trip);
+        await denyContext.save();
         denyContext.insert(BucketListItem(
-            id: 'bli-d1', title: 'Block delete', tripId: 'trip-deny'));
+            id: 'bli-d1', title: 'Block delete', trip: trip));
         await denyContext.save();
 
         denyContext.delete(trip);
@@ -223,8 +233,9 @@ void main() {
           endDate: DateTime.utc(2026, 1, 2),
         );
         noActionContext.insert(trip);
+        await noActionContext.save();
         noActionContext.insert(BucketListItem(
-            id: 'bli-na1', title: 'Orphan Item', tripId: 'trip-noaction'));
+            id: 'bli-na1', title: 'Orphan Item', trip: trip));
         await noActionContext.save();
 
         noActionContext.delete(trip);
@@ -234,10 +245,14 @@ void main() {
         final trips = await noActionContext.fetch(Query<Trip>());
         expect(trips, isEmpty);
 
-        // BucketListItem still exists with stale FK.
+        // BucketListItem still exists with stale FK (z_pk integer).
         final items = await noActionContext.fetch(Query<BucketListItem>());
         expect(items.length, equals(1));
-        expect(items.first.tripId, equals('trip-noaction'));
+        // Verify stale FK via raw SQL — it's an integer z_pk.
+        final rows = noActionContainer.db.select(
+          "SELECT trip_id FROM bucket_list_item WHERE id = 'bli-na1'",
+        );
+        expect(rows.first['trip_id'], isA<int>());
 
         noActionContainer.close();
       },
@@ -248,11 +263,11 @@ void main() {
   // Task 5.6: One-to-one optional (LivingAccommodation? with null FK)
   // ---------------------------------------------------------------------------
   group('One-to-one optional', () {
-    test('LivingAccommodation with null tripId stores NULL FK', () async {
+    test('LivingAccommodation with null trip stores NULL FK', () async {
       context.insert(LivingAccommodation(
         id: 'acc-orphan',
         address: '456 Elm St',
-        tripId: null,
+        trip: null,
       ));
       await context.save();
 
@@ -263,7 +278,7 @@ void main() {
       expect(rows.first['trip_id'], isNull);
     });
 
-    test('LivingAccommodation with tripId stores the FK value', () async {
+    test('LivingAccommodation with trip stores z_pk integer FK', () async {
       final trip = Trip(
         id: 'trip-opt',
         name: 'Optional Trip',
@@ -272,17 +287,20 @@ void main() {
         endDate: DateTime.utc(2026, 1, 2),
       );
       context.insert(trip);
+      await context.save();
       context.insert(LivingAccommodation(
         id: 'acc-linked',
         address: '789 Oak Ave',
-        tripId: 'trip-opt',
+        trip: trip,
       ));
       await context.save();
 
       final rows = container.db.select(
         "SELECT trip_id FROM living_accommodation WHERE id = 'acc-linked'",
       );
-      expect(rows.first['trip_id'], equals('trip-opt'));
+      // FK should be Trip's z_pk integer, not a UUID string.
+      expect(rows.first['trip_id'], isA<int>());
+      expect(rows.first['trip_id'], equals(1));
     });
   });
 
@@ -299,12 +317,22 @@ void main() {
         endDate: DateTime.utc(2026, 1, 2),
       );
       context.insert(trip);
+      await context.save();
+      final trip2 = Trip(
+        id: 'other-trip',
+        name: 'Other',
+        destination: 'B',
+        startDate: DateTime.utc(2026, 1, 1),
+        endDate: DateTime.utc(2026, 1, 2),
+      );
+      context.insert(trip2);
+      await context.save();
       context.insert(BucketListItem(
-          id: 'bli-f1', title: 'Item 1', tripId: 'trip-fetch'));
+          id: 'bli-f1', title: 'Item 1', trip: trip));
       context.insert(BucketListItem(
-          id: 'bli-f2', title: 'Item 2', tripId: 'trip-fetch'));
+          id: 'bli-f2', title: 'Item 2', trip: trip));
       context.insert(BucketListItem(
-          id: 'bli-other', title: 'Other Item', tripId: 'other-trip'));
+          id: 'bli-other', title: 'Other Item', trip: trip2));
       await context.save();
 
       final items = await context.fetchRelated<BucketListItem>(
@@ -322,8 +350,9 @@ void main() {
         endDate: DateTime.utc(2026, 1, 2),
       );
       context.insert(trip);
+      await context.save();
       context.insert(LivingAccommodation(
-          id: 'acc-f1', address: '10 Main St', tripId: 'trip-acc'));
+          id: 'acc-f1', address: '10 Main St', trip: trip));
       await context.save();
 
       final accs = await context.fetchRelated<LivingAccommodation>(
@@ -373,10 +402,13 @@ void main() {
         endDate: DateTime.utc(2026, 1, 2),
       );
       ctx.insert(trip);
-      ctx.insert(BucketListItem(
-          id: 'bli-n1', title: 'Parent Item', tripId: 'trip-nested'));
+      await ctx.save();
+      final bli = BucketListItem(
+          id: 'bli-n1', title: 'Parent Item', trip: trip);
+      ctx.insert(bli);
+      await ctx.save();
       ctx.insert(SubItem(
-          id: 'sub-1', note: 'Sub note', bucketListItemId: 'bli-n1'));
+          id: 'sub-1', note: 'Sub note', bucketListItem: bli));
       await ctx.save();
 
       ctx.delete(trip);
@@ -388,6 +420,100 @@ void main() {
       expect(subItems, isEmpty);
 
       nestedContainer.close();
+    });
+
+    test('delete succeeds when relationship target was already deleted (noAction)',
+        () async {
+      // Bug: _resolveRelationshipFks is called for delete operations,
+      // causing StateError when the related parent row no longer exists.
+      // Delete only needs map['id'], FK resolution is unnecessary.
+      final noActionContainer = await ModelContainer.create(
+        schema: Schema([
+          TripDescriptor(),
+          NoActionBucketListItemDescriptor(),
+        ]),
+        configuration: const ModelConfiguration.inMemory(),
+      );
+      final ctx = ModelContext(noActionContainer);
+
+      final trip = Trip(
+        id: 'trip-del-orphan',
+        name: 'Delete Orphan Trip',
+        destination: 'X',
+        startDate: DateTime.utc(2026, 1, 1),
+        endDate: DateTime.utc(2026, 1, 2),
+      );
+      ctx.insert(trip);
+      await ctx.save();
+
+      final item = BucketListItem(
+        id: 'bli-del-orphan',
+        title: 'Orphan',
+        trip: trip,
+      );
+      ctx.insert(item);
+      await ctx.save();
+
+      // Delete parent first (noAction leaves orphan).
+      ctx.delete(trip);
+      await ctx.save();
+
+      // Now delete the orphan child whose trip reference points to
+      // a row that no longer exists. This should NOT throw.
+      ctx.delete(item);
+      await ctx.save();
+
+      final items = await ctx.fetch(Query<BucketListItem>());
+      expect(items, isEmpty);
+
+      noActionContainer.close();
+    });
+
+    test('fetch-modify-save preserves FK when relationship field is not hydrated',
+        () async {
+      // Bug: fromMap() does not populate relationship fields, so fetched
+      // objects have trip == null. Re-saving writes null into the FK column,
+      // silently destroying the relationship.
+      final trip = Trip(
+        id: 'trip-roundtrip',
+        name: 'Roundtrip Trip',
+        destination: 'R',
+        startDate: DateTime.utc(2026, 1, 1),
+        endDate: DateTime.utc(2026, 1, 2),
+      );
+      context.insert(trip);
+      await context.save();
+
+      final item = BucketListItem(
+        id: 'bli-roundtrip',
+        title: 'Original Title',
+        trip: trip,
+      );
+      context.insert(item);
+      await context.save();
+
+      // Verify FK is set initially.
+      var rows = container.db.select(
+        "SELECT trip_id FROM bucket_list_item WHERE id = 'bli-roundtrip'",
+      );
+      expect(rows.first['trip_id'], isA<int>());
+      expect(rows.first['trip_id'], equals(1));
+
+      // Fetch the item (fromMap does not hydrate trip field).
+      final fetched = await context.fetchOne<BucketListItem>(id: 'bli-roundtrip');
+      expect(fetched, isNotNull);
+
+      // Modify an unrelated field and re-save.
+      fetched!.title = 'Updated Title';
+      context.insert(fetched); // upsert
+      await context.save();
+
+      // FK must still be intact — not nullified.
+      rows = container.db.select(
+        "SELECT trip_id FROM bucket_list_item WHERE id = 'bli-roundtrip'",
+      );
+      expect(rows.first['trip_id'], isA<int>());
+      expect(rows.first['trip_id'], equals(1));
     });
 
     test('deleting a model with no relationships proceeds normally', () async {
@@ -429,8 +555,9 @@ void main() {
         endDate: DateTime.utc(2026, 1, 2),
       );
       ctx.insert(trip);
+      await ctx.save();
       ctx.insert(BucketListItem(
-          id: 'bli-dt1', title: 'Block', tripId: 'trip-deny-txn'));
+          id: 'bli-dt1', title: 'Block', trip: trip));
       await ctx.save();
 
       // Deny should throw before any SQL executes.

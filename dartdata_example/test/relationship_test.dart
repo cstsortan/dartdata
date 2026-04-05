@@ -92,11 +92,11 @@ void main() {
       context.insert(Category(id: 'cat1', name: 'Tech', post: post));
       await context.save();
 
-      // Verify FK is set to the post's UUID
+      // Verify FK is set to the post's z_pk integer
       final before = container.db.select(
         "SELECT post_id FROM category WHERE id = 'cat1'",
       );
-      expect(before.first['post_id'], 'p1');
+      expect(before.first['post_id'], isA<int>());
 
       // Delete the post — should nullify category.post_id
       final fetched = (await context.fetchOne<Post>(id: 'p1'))!;
@@ -120,6 +120,7 @@ void main() {
     test('deleting Author nullifies author_id on Posts', () async {
       final author = Author(id: 'a1', name: 'Alice', email: 'a@test.com');
       context.insert(author);
+      await context.save();
       context.insert(Post(
         id: 'p1',
         title: 'T',
@@ -129,11 +130,11 @@ void main() {
       ));
       await context.save();
 
-      // Verify FK is set to the author's UUID
+      // Verify FK is set to the author's z_pk integer
       final before = container.db.select(
         "SELECT author_id FROM post WHERE id = 'p1'",
       );
-      expect(before.first['author_id'], 'a1');
+      expect(before.first['author_id'], isA<int>());
 
       // Delete author — Post.author relationship has DeleteRule.nullify
       final fetched = (await context.fetchOne<Author>(id: 'a1'))!;
@@ -178,12 +179,12 @@ void main() {
       expect(results, hasLength(1));
       expect(results.first.pinnedAt, DateTime.utc(2026, 6, 15));
 
-      // Verify FKs via raw query — should be UUID strings
+      // Verify FKs via raw query — should be z_pk integers
       final raw = container.db.select(
         "SELECT post_id, tag_id FROM post_tag WHERE id = 'pt1'",
       );
-      expect(raw.first['post_id'], 'p1');
-      expect(raw.first['tag_id'], 't1');
+      expect(raw.first['post_id'], isA<int>());
+      expect(raw.first['tag_id'], isA<int>());
     });
 
     test('deleting Post cascades to PostTag entries', () async {

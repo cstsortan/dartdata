@@ -49,7 +49,7 @@ class _CategoryDescriptor extends ModelDescriptor {
             isNullable: false),
         ColumnDefinition(
             columnName: 'post_id',
-            type: ColumnType.text,
+            type: ColumnType.integer,
             isPrimaryKey: false,
             isUnique: false,
             isIndexed: false,
@@ -85,6 +85,14 @@ class _CategoryDescriptor extends ModelDescriptor {
     return {
       'id': m.id,
       'name': m.name,
+      'post_id': null, // FK resolved by ModelContext via getRelationshipIds
+    };
+  }
+
+  @override
+  Map<String, String?> getRelationshipIds(Object model) {
+    final m = model as Category;
+    return {
       'post_id': m.post?.id,
     };
   }

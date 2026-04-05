@@ -2,15 +2,24 @@
   "id": "zpk-integer-fk_20260405",
   "title": "z_pk Integer Foreign Key Resolution",
   "type": "refactor",
-  "status": "pending",
+  "status": "complete",
   "created": "2026-04-05T00:00:00Z",
   "updated": "2026-04-05T00:00:00Z",
+  "current_phase": 6,
+  "current_task": "6.10",
   "phases": {
     "total": 6,
-    "completed": 0
+    "completed": 6
   },
   "tasks": {
     "total": 40,
-    "completed": 0
-  }
+    "completed": 40
+  },
+  "commits": [
+    "69c0e03: feat(schema): add getRelationshipIds() and update test models to integer FK columns",
+    "0f70d9f: feat(context): resolve FK UUIDs to z_pk integers on insert/update",
+    "a8ff3b5: feat(context): resolve z_pk in delete rules, fetchRelated, and update all relationship tests",
+    "d303da7: feat(generator): emit integer FK columns, null in toMap, and getRelationshipIds override",
+    "14570d3: feat(example): update .g.dart files and tests for integer FK columns"
+  ]
 }

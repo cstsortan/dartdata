@@ -121,6 +121,12 @@ class ModelContext {
       );
     }
 
+    // Resolve FK UUIDs → z_pk integers for relationship columns.
+    // Skip for deletes — DELETE only needs map['id'], not FK values.
+    if (op.type != _OperationType.delete) {
+      _resolveRelationshipFks(op.model, descriptor, map);
+    }
+
     switch (op.type) {
       case _OperationType.insert:
         // Persist any staged ExternalFile fields first.
@@ -267,9 +273,13 @@ class ModelContext {
     final fkColumn = parentRel.fkColumnName ??
         '${parentRel.inverseFieldName ?? parentDescriptor.tableName}_id';
 
+    // Resolve parent UUID → z_pk for FK lookup.
+    final parentZpk =
+        _resolveZpk(parentDescriptor.tableName, parentId);
+
     final rows = container.db.select(
       'SELECT * FROM ${childDescriptor.tableName} WHERE $fkColumn = ?',
-      [parentId],
+      [parentZpk],
     );
 
     return rows.map((row) {
@@ -342,6 +352,73 @@ class ModelContext {
   // -------------------------------------------------------------------------
   // Helpers
   // -------------------------------------------------------------------------
+
+  /// Resolve FK UUID strings to z_pk integers for all relationship columns.
+  ///
+  /// Calls `getRelationshipIds()` on the descriptor to get FK column → UUID
+  /// pairs, then looks up each UUID's z_pk via SQL and injects the integer
+  /// into [map]. Throws [StateError] if a related object hasn't been saved.
+  void _resolveRelationshipFks(
+    Object model,
+    ModelDescriptor descriptor,
+    Map<String, Object?> map,
+  ) {
+    final relIds = descriptor.getRelationshipIds(model);
+    if (relIds.isEmpty) return;
+
+    for (final entry in relIds.entries) {
+      final fkColumn = entry.key;
+      final relatedUuid = entry.value;
+
+      if (relatedUuid == null) {
+        // Preserve existing FK from the database if the relationship field
+        // was never hydrated (e.g., after fromMap). Only write null if this
+        // is a fresh insert (no existing row).
+        final id = map['id'] as String?;
+        if (id != null) {
+          final existing = container.db.select(
+            'SELECT $fkColumn FROM ${descriptor.tableName} WHERE id = ?',
+            [id],
+          );
+          if (existing.isNotEmpty) {
+            map[fkColumn] = existing.first[fkColumn];
+            continue;
+          }
+        }
+        map[fkColumn] = null;
+        continue;
+      }
+
+      // Find the related table from the relationship definitions.
+      final rel = descriptor.relationships.firstWhere(
+        (r) => r.fkColumnName == fkColumn,
+        orElse: () => throw StateError(
+          'No relationship with fkColumnName "$fkColumn" '
+          'on ${descriptor.modelClassName}',
+        ),
+      );
+
+      final zpk = _resolveZpk(rel.relatedTable, relatedUuid);
+      map[fkColumn] = zpk;
+    }
+  }
+
+  /// Look up the z_pk integer for a row by its UUID id.
+  ///
+  /// Throws [StateError] if the row doesn't exist (unsaved parent).
+  int _resolveZpk(String tableName, String uuid) {
+    final rows = container.db.select(
+      'SELECT z_pk FROM $tableName WHERE id = ?',
+      [uuid],
+    );
+    if (rows.isEmpty) {
+      throw StateError(
+        'Cannot resolve FK: no row in "$tableName" with id "$uuid". '
+        'Save the parent object before its children.',
+      );
+    }
+    return rows.first['z_pk'] as int;
+  }
 
   String _buildSelectSql<T>(ModelDescriptor descriptor, Query<T> query) {
     final parts = ['SELECT * FROM ${descriptor.tableName}'];
@@ -440,19 +517,23 @@ class ModelContext {
       final children = _reverseRelationships[parentDescriptor.tableName];
       if (children == null) continue;
 
+      // Resolve parent UUID → z_pk for FK lookups on child tables.
+      final parentZpk =
+          _resolveZpk(parentDescriptor.tableName, parentId);
+
       for (final child in children) {
         final fkColumn = child.fkColumnName;
 
         switch (child.deleteRule) {
           case DeleteRule.cascade:
-            _cascadeDelete(child.descriptor, fkColumn, parentId);
+            _cascadeDelete(child.descriptor, fkColumn, parentZpk);
           case DeleteRule.nullify:
             deferredSql.add(_DeferredSql(
               'UPDATE ${child.descriptor.tableName} SET $fkColumn = NULL WHERE $fkColumn = ?',
-              [parentId],
+              [parentZpk],
             ));
           case DeleteRule.deny:
-            _denyDelete(child.descriptor, fkColumn, parentId);
+            _denyDelete(child.descriptor, fkColumn, parentZpk);
           case DeleteRule.noAction:
             break;
         }
@@ -462,16 +543,16 @@ class ModelContext {
     return deferredSql;
   }
 
-  /// CASCADE: query child IDs by FK, reconstruct models, add them as
+  /// CASCADE: query child rows by FK z_pk, reconstruct models, add them as
   /// pending deletes (which will recursively trigger their own rules).
   void _cascadeDelete(
     ModelDescriptor childDescriptor,
     String fkColumn,
-    String parentId,
+    int parentZpk,
   ) {
     final rows = container.db.select(
       'SELECT * FROM ${childDescriptor.tableName} WHERE $fkColumn = ?',
-      [parentId],
+      [parentZpk],
     );
 
     for (final row in rows) {
@@ -485,11 +566,11 @@ class ModelContext {
   void _denyDelete(
     ModelDescriptor childDescriptor,
     String fkColumn,
-    String parentId,
+    int parentZpk,
   ) {
     final row = container.db.select(
       'SELECT COUNT(*) as c FROM ${childDescriptor.tableName} WHERE $fkColumn = ?',
-      [parentId],
+      [parentZpk],
     );
     final count = row.first['c'] as int;
     if (count > 0) {

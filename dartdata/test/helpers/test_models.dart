@@ -310,26 +310,26 @@ class BucketListItem {
   final String id;
   String title;
   bool isInBucket;
-  String? tripId; // foreign key to Trip
+  Trip? trip; // object reference — FK resolved by ModelContext at save time
 
   BucketListItem({
     required this.id,
     required this.title,
     this.isInBucket = false,
-    this.tripId,
+    this.trip,
   });
 
   Map<String, Object?> toMap() => {
         'id': id,
         'title': title,
         'is_in_bucket': isInBucket ? 1 : 0,
-        'trip_id': tripId,
+        'trip_id': null, // FK resolved by ModelContext via getRelationshipIds
       };
 }
 
 abstract class $BucketListItem {
   static final title = QueryField<String>('title');
-  static final tripId = QueryField<String>('trip_id');
+  static final tripId = QueryField<int>('trip_id');
 }
 
 class BucketListItemDescriptor extends ModelDescriptor {
@@ -353,7 +353,9 @@ class BucketListItemDescriptor extends ModelDescriptor {
         const ColumnDefinition(
             columnName: 'is_in_bucket', type: ColumnType.integer),
         const ColumnDefinition(
-            columnName: 'trip_id', type: ColumnType.text, isNullable: true),
+            columnName: 'trip_id',
+            type: ColumnType.integer,
+            isNullable: true),
       ];
 
   @override
@@ -377,13 +379,18 @@ class BucketListItemDescriptor extends ModelDescriptor {
         id: row['id'] as String,
         title: row['title'] as String,
         isInBucket: (row['is_in_bucket'] as int) == 1,
-        tripId: row['trip_id'] as String?,
       );
 
   @override
   Map<String, Object?> toMap(Object model) {
     final m = model as BucketListItem;
     return m.toMap();
+  }
+
+  @override
+  Map<String, String?> getRelationshipIds(Object model) {
+    final m = model as BucketListItem;
+    return {'trip_id': m.trip?.id};
   }
 }
 
@@ -394,18 +401,19 @@ class BucketListItemDescriptor extends ModelDescriptor {
 class SubItem {
   final String id;
   String note;
-  String? bucketListItemId;
+  BucketListItem? bucketListItem;
 
   SubItem({
     required this.id,
     required this.note,
-    this.bucketListItemId,
+    this.bucketListItem,
   });
 
   Map<String, Object?> toMap() => {
         'id': id,
         'note': note,
-        'bucket_list_item_id': bucketListItemId,
+        'bucket_list_item_id':
+            null, // FK resolved by ModelContext via getRelationshipIds
       };
 }
 
@@ -429,7 +437,7 @@ class SubItemDescriptor extends ModelDescriptor {
         const ColumnDefinition(columnName: 'note', type: ColumnType.text),
         const ColumnDefinition(
             columnName: 'bucket_list_item_id',
-            type: ColumnType.text,
+            type: ColumnType.integer,
             isNullable: true),
       ];
 
@@ -453,13 +461,18 @@ class SubItemDescriptor extends ModelDescriptor {
   SubItem fromMap(Map<String, Object?> row) => SubItem(
         id: row['id'] as String,
         note: row['note'] as String,
-        bucketListItemId: row['bucket_list_item_id'] as String?,
       );
 
   @override
   Map<String, Object?> toMap(Object model) {
     final m = model as SubItem;
     return m.toMap();
+  }
+
+  @override
+  Map<String, String?> getRelationshipIds(Object model) {
+    final m = model as SubItem;
+    return {'bucket_list_item_id': m.bucketListItem?.id};
   }
 }
 
@@ -485,7 +498,9 @@ class DenyBucketListItemDescriptor extends ModelDescriptor {
         const ColumnDefinition(
             columnName: 'is_in_bucket', type: ColumnType.integer),
         const ColumnDefinition(
-            columnName: 'trip_id', type: ColumnType.text, isNullable: true),
+            columnName: 'trip_id',
+            type: ColumnType.integer,
+            isNullable: true),
       ];
 
   @override
@@ -509,13 +524,18 @@ class DenyBucketListItemDescriptor extends ModelDescriptor {
         id: row['id'] as String,
         title: row['title'] as String,
         isInBucket: (row['is_in_bucket'] as int) == 1,
-        tripId: row['trip_id'] as String?,
       );
 
   @override
   Map<String, Object?> toMap(Object model) {
     final m = model as BucketListItem;
     return m.toMap();
+  }
+
+  @override
+  Map<String, String?> getRelationshipIds(Object model) {
+    final m = model as BucketListItem;
+    return {'trip_id': m.trip?.id};
   }
 }
 
@@ -541,7 +561,9 @@ class NoActionBucketListItemDescriptor extends ModelDescriptor {
         const ColumnDefinition(
             columnName: 'is_in_bucket', type: ColumnType.integer),
         const ColumnDefinition(
-            columnName: 'trip_id', type: ColumnType.text, isNullable: true),
+            columnName: 'trip_id',
+            type: ColumnType.integer,
+            isNullable: true),
       ];
 
   @override
@@ -565,13 +587,18 @@ class NoActionBucketListItemDescriptor extends ModelDescriptor {
         id: row['id'] as String,
         title: row['title'] as String,
         isInBucket: (row['is_in_bucket'] as int) == 1,
-        tripId: row['trip_id'] as String?,
       );
 
   @override
   Map<String, Object?> toMap(Object model) {
     final m = model as BucketListItem;
     return m.toMap();
+  }
+
+  @override
+  Map<String, String?> getRelationshipIds(Object model) {
+    final m = model as BucketListItem;
+    return {'trip_id': m.trip?.id};
   }
 }
 
@@ -582,24 +609,24 @@ class NoActionBucketListItemDescriptor extends ModelDescriptor {
 class LivingAccommodation {
   final String id;
   String address;
-  String? tripId; // foreign key to Trip
+  Trip? trip; // object reference — FK resolved by ModelContext at save time
 
   LivingAccommodation({
     required this.id,
     required this.address,
-    this.tripId,
+    this.trip,
   });
 
   Map<String, Object?> toMap() => {
         'id': id,
         'address': address,
-        'trip_id': tripId,
+        'trip_id': null, // FK resolved by ModelContext via getRelationshipIds
       };
 }
 
 abstract class $LivingAccommodation {
   static final address = QueryField<String>('address');
-  static final tripId = QueryField<String>('trip_id');
+  static final tripId = QueryField<int>('trip_id');
 }
 
 // ---------------------------------------------------------------------------
@@ -699,7 +726,9 @@ class LivingAccommodationDescriptor extends ModelDescriptor {
             isNullable: false),
         const ColumnDefinition(columnName: 'address', type: ColumnType.text),
         const ColumnDefinition(
-            columnName: 'trip_id', type: ColumnType.text, isNullable: true),
+            columnName: 'trip_id',
+            type: ColumnType.integer,
+            isNullable: true),
       ];
 
   @override
@@ -718,15 +747,21 @@ class LivingAccommodationDescriptor extends ModelDescriptor {
   List<String> get externalFileFields => [];
 
   @override
-  LivingAccommodation fromMap(Map<String, Object?> row) => LivingAccommodation(
+  LivingAccommodation fromMap(Map<String, Object?> row) =>
+      LivingAccommodation(
         id: row['id'] as String,
         address: row['address'] as String,
-        tripId: row['trip_id'] as String?,
       );
 
   @override
   Map<String, Object?> toMap(Object model) {
     final m = model as LivingAccommodation;
     return m.toMap();
+  }
+
+  @override
+  Map<String, String?> getRelationshipIds(Object model) {
+    final m = model as LivingAccommodation;
+    return {'trip_id': m.trip?.id};
   }
 }

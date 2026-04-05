@@ -58,7 +58,7 @@ class _CommentDescriptor extends ModelDescriptor {
             isNullable: false),
         ColumnDefinition(
             columnName: 'post_id',
-            type: ColumnType.text,
+            type: ColumnType.integer,
             isPrimaryKey: false,
             isUnique: false,
             isIndexed: false,
@@ -97,6 +97,14 @@ class _CommentDescriptor extends ModelDescriptor {
       'id': m.id,
       'text': m.text,
       'created_at': m.createdAt.toUtc().millisecondsSinceEpoch,
+      'post_id': null, // FK resolved by ModelContext via getRelationshipIds
+    };
+  }
+
+  @override
+  Map<String, String?> getRelationshipIds(Object model) {
+    final m = model as Comment;
+    return {
       'post_id': m.post?.id,
     };
   }
