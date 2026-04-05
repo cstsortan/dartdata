@@ -3,7 +3,7 @@
 **Track ID:** example-package_20260405
 **Spec:** [spec.md](./spec.md)
 **Created:** 2026-04-05
-**Status:** [ ] Not Started
+**Status:** [~] In Progress
 
 ## Overview
 
@@ -15,20 +15,20 @@ Set up the package structure, dependencies, and all seven annotated model classe
 
 ### Tasks
 
-- [ ] Task 1.1: Create `dartdata_example/pubspec.yaml` with dependencies on `dartdata`, `dartdata_generator`, `sqlite3`, `uuid`, `build_runner`, `source_gen`, and `test`
-- [ ] Task 1.2: Create `lib/src/models/author.dart` — `@model` with `@attribute(unique, indexed)` on email, `ExternalFile` photo field
-- [ ] Task 1.3: Create `lib/src/models/post.dart` — `@model` with `@attribute(primaryKey, indexed, transient, columnName)`, `DateTime`, `bool`, one-to-many owner relationship to `Author`
-- [ ] Task 1.4: Create `lib/src/models/category.dart` — `@model` with one-to-one relationship to `Post`, `DeleteRule.nullify`
-- [ ] Task 1.5: Create `lib/src/models/comment.dart` — `@model` with one-to-many from `Post`, `DeleteRule.cascade`
-- [ ] Task 1.6: Create `lib/src/models/tag.dart` — `@model` with many-to-many with `Post` (auto junction table), `DeleteRule.deny`
-- [ ] Task 1.7: Create `lib/src/models/post_tag.dart` — explicit junction `@model` (many-to-many with extra field `pinnedAt DateTime?`)
-- [ ] Task 1.8: Create `lib/src/models/attachment.dart` — `@model` with `ExternalFile`, `DeleteRule.cascade`, one-to-many from `Post`
-- [ ] Task 1.9: Create `lib/src/schema.dart` — shared `Schema([...])` used by all tests
+- [x] Task 1.1: Create `dartdata_example/pubspec.yaml` with dependencies on `dartdata`, `dartdata_generator`, `sqlite3`, `uuid`, `build_runner`, `source_gen`, and `test`
+- [x] Task 1.2: Create `lib/src/models/author.dart` — `@model` with `@attribute(unique, indexed)` on email, `ExternalFile` photo field
+- [x] Task 1.3: Create `lib/src/models/post.dart` — `@model` with `@attribute(primaryKey, indexed, transient, columnName)`, `DateTime`, `bool`, one-to-many owner relationship to `Author`
+- [x] Task 1.4: Create `lib/src/models/category.dart` — `@model` with one-to-one relationship to `Post`, `DeleteRule.nullify`
+- [x] Task 1.5: Create `lib/src/models/comment.dart` — `@model` with one-to-many from `Post`, `DeleteRule.cascade`
+- [x] Task 1.6: Create `lib/src/models/tag.dart` — `@model` with many-to-many with `Post` (auto junction table), `DeleteRule.deny`
+- [x] Task 1.7: Create `lib/src/models/post_tag.dart` — explicit junction `@model` (many-to-many with extra field `pinnedAt DateTime?`)
+- [x] Task 1.8: Create `lib/src/models/attachment.dart` — `@model` with `ExternalFile`, `DeleteRule.cascade`, one-to-many from `Post`
+- [x] Task 1.9: Create `lib/src/schema.dart` — shared `Schema([...])` used by all tests
 
 ### Verification
 
-- [ ] `dart run build_runner build --delete-conflicting-outputs` completes without errors
-- [ ] All `.g.dart` files are generated for each model
+- [x] `dart run build_runner build --delete-conflicting-outputs` completes without errors
+- [x] All `.g.dart` files are generated for each model
 
 ## Phase 2: Container & CRUD Tests
 
