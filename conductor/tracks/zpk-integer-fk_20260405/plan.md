@@ -54,20 +54,20 @@ Update `_enforceDeleteRules` and `fetchRelated` to resolve parent UUID -> z_pk b
 
 ### Tasks
 
-- [ ] Task 3.1: Write failing test — `deleting a Trip cascades to its BucketListItems` with z_pk FK (RED)
-- [ ] Task 3.2: Add `_resolveZpk` helper method to `ModelContext` — `SELECT z_pk FROM tableName WHERE id = ?`
-- [ ] Task 3.3: Refactor `_resolveRelationshipFks` to use `_resolveZpk` helper
-- [ ] Task 3.4: Update `_enforceDeleteRules` — resolve `parentZpk` and pass to cascade/nullify/deny operations
-- [ ] Task 3.5: Update `_cascadeDelete` and `_denyDelete` signatures to accept `int parentZpk` instead of `String parentId`
-- [ ] Task 3.6: Update `fetchRelated` — resolve parent UUID -> z_pk before querying children
-- [ ] Task 3.7: Run cascade test — verify it passes (GREEN)
+- [x] Task 3.1: Write failing test — `deleting a Trip cascades to its BucketListItems` with z_pk FK (RED)
+- [x] Task 3.2: Add `_resolveZpk` helper method to `ModelContext` — `SELECT z_pk FROM tableName WHERE id = ?`
+- [x] Task 3.3: Refactor `_resolveRelationshipFks` to use `_resolveZpk` helper
+- [x] Task 3.4: Update `_enforceDeleteRules` — resolve `parentZpk` and pass to cascade/nullify/deny operations
+- [x] Task 3.5: Update `_cascadeDelete` and `_denyDelete` signatures to accept `int parentZpk` instead of `String parentId`
+- [x] Task 3.6: Update `fetchRelated` — resolve parent UUID -> z_pk before querying children
+- [x] Task 3.7: Run cascade test — verify it passes (GREEN)
 
 ### Verification
 
-- [ ] Cascade delete works with z_pk integer FK columns
-- [ ] Nullify delete rule sets FK to NULL correctly
-- [ ] Deny delete rule throws when children exist
-- [ ] `fetchRelated` returns correct children via z_pk lookup
+- [x] Cascade delete works with z_pk integer FK columns
+- [x] Nullify delete rule sets FK to NULL correctly
+- [x] Deny delete rule throws when children exist
+- [x] `fetchRelated` returns correct children via z_pk lookup
 
 ## Phase 4: Update Relationship Tests
 
@@ -75,20 +75,20 @@ Update all remaining relationship tests to use object references and verify z_pk
 
 ### Tasks
 
-- [ ] Task 4.1: Update nullify test to use `trip:` object reference and verify NULL FK via raw SQL
-- [ ] Task 4.2: Update deny test to use `trip:` object reference with parent-before-child save ordering
-- [ ] Task 4.3: Update noAction test to use `trip:` object reference
-- [ ] Task 4.4: Update one-to-one optional tests (null trip, linked trip with z_pk verification)
-- [ ] Task 4.5: Update fetchRelated tests — use `trip:` object refs, add second trip for `bli-other`, parent-before-child save ordering
-- [ ] Task 4.6: Update nested cascade test — save parent, then child, then grandchild sequentially
-- [ ] Task 4.7: Update deny+rollback test with object references
-- [ ] Task 4.8: Run all relationship tests — verify all pass
-- [ ] Task 4.9: Run full `dartdata` test suite — verify all pass
+- [x] Task 4.1: Update nullify test to use `trip:` object reference and verify NULL FK via raw SQL
+- [x] Task 4.2: Update deny test to use `trip:` object reference with parent-before-child save ordering
+- [x] Task 4.3: Update noAction test to use `trip:` object reference
+- [x] Task 4.4: Update one-to-one optional tests (null trip, linked trip with z_pk verification)
+- [x] Task 4.5: Update fetchRelated tests — use `trip:` object refs, add second trip for `bli-other`, parent-before-child save ordering
+- [x] Task 4.6: Update nested cascade test — save parent, then child, then grandchild sequentially
+- [x] Task 4.7: Update deny+rollback test with object references
+- [x] Task 4.8: Run all relationship tests — verify all pass (17/17)
+- [x] Task 4.9: Run full `dartdata` test suite — verify all pass (153/153)
 
 ### Verification
 
-- [ ] All relationship tests pass
-- [ ] Full `dartdata` test suite passes with zero failures
+- [x] All relationship tests pass
+- [x] Full `dartdata` test suite passes with zero failures
 
 ## Phase 5: Generator Updates
 

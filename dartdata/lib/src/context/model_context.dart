@@ -270,9 +270,13 @@ class ModelContext {
     final fkColumn = parentRel.fkColumnName ??
         '${parentRel.inverseFieldName ?? parentDescriptor.tableName}_id';
 
+    // Resolve parent UUID → z_pk for FK lookup.
+    final parentZpk =
+        _resolveZpk(parentDescriptor.tableName, parentId);
+
     final rows = container.db.select(
       'SELECT * FROM ${childDescriptor.tableName} WHERE $fkColumn = ?',
-      [parentId],
+      [parentZpk],
     );
 
     return rows.map((row) {
@@ -496,19 +500,23 @@ class ModelContext {
       final children = _reverseRelationships[parentDescriptor.tableName];
       if (children == null) continue;
 
+      // Resolve parent UUID → z_pk for FK lookups on child tables.
+      final parentZpk =
+          _resolveZpk(parentDescriptor.tableName, parentId);
+
       for (final child in children) {
         final fkColumn = child.fkColumnName;
 
         switch (child.deleteRule) {
           case DeleteRule.cascade:
-            _cascadeDelete(child.descriptor, fkColumn, parentId);
+            _cascadeDelete(child.descriptor, fkColumn, parentZpk);
           case DeleteRule.nullify:
             deferredSql.add(_DeferredSql(
               'UPDATE ${child.descriptor.tableName} SET $fkColumn = NULL WHERE $fkColumn = ?',
-              [parentId],
+              [parentZpk],
             ));
           case DeleteRule.deny:
-            _denyDelete(child.descriptor, fkColumn, parentId);
+            _denyDelete(child.descriptor, fkColumn, parentZpk);
           case DeleteRule.noAction:
             break;
         }
@@ -518,16 +526,16 @@ class ModelContext {
     return deferredSql;
   }
 
-  /// CASCADE: query child IDs by FK, reconstruct models, add them as
+  /// CASCADE: query child rows by FK z_pk, reconstruct models, add them as
   /// pending deletes (which will recursively trigger their own rules).
   void _cascadeDelete(
     ModelDescriptor childDescriptor,
     String fkColumn,
-    String parentId,
+    int parentZpk,
   ) {
     final rows = container.db.select(
       'SELECT * FROM ${childDescriptor.tableName} WHERE $fkColumn = ?',
-      [parentId],
+      [parentZpk],
     );
 
     for (final row in rows) {
@@ -541,11 +549,11 @@ class ModelContext {
   void _denyDelete(
     ModelDescriptor childDescriptor,
     String fkColumn,
-    String parentId,
+    int parentZpk,
   ) {
     final row = container.db.select(
       'SELECT COUNT(*) as c FROM ${childDescriptor.tableName} WHERE $fkColumn = ?',
-      [parentId],
+      [parentZpk],
     );
     final count = row.first['c'] as int;
     if (count > 0) {
