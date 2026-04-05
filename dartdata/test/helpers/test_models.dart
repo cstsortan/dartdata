@@ -103,6 +103,111 @@ class TripDescriptor extends ModelDescriptor {
 }
 
 // ---------------------------------------------------------------------------
+// TripV2 — Trip with an extra 'notes' column, for migration testing
+// ---------------------------------------------------------------------------
+
+class TripV2Descriptor extends ModelDescriptor {
+  @override
+  String get tableName => 'trip';
+
+  @override
+  String get modelClassName => 'Trip';
+
+  @override
+  Type get modelType => Trip;
+
+  @override
+  List<ColumnDefinition> get columns => [
+        const ColumnDefinition(
+            columnName: 'id',
+            type: ColumnType.text,
+            isPrimaryKey: true,
+            isNullable: false),
+        const ColumnDefinition(columnName: 'name', type: ColumnType.text),
+        const ColumnDefinition(
+            columnName: 'destination', type: ColumnType.text),
+        const ColumnDefinition(
+            columnName: 'start_date', type: ColumnType.integer),
+        const ColumnDefinition(
+            columnName: 'end_date', type: ColumnType.integer),
+        const ColumnDefinition(
+            columnName: 'notes', type: ColumnType.text, isNullable: true),
+      ];
+
+  @override
+  List<RelationshipDefinition> get relationships => [];
+
+  @override
+  List<String> get externalFileFields => [];
+
+  @override
+  Trip fromMap(Map<String, Object?> row) => Trip(
+        id: row['id'] as String,
+        name: row['name'] as String,
+        destination: row['destination'] as String,
+        startDate: DateTime.fromMillisecondsSinceEpoch(
+            row['start_date'] as int,
+            isUtc: true),
+        endDate: DateTime.fromMillisecondsSinceEpoch(row['end_date'] as int,
+            isUtc: true),
+      );
+}
+
+// ---------------------------------------------------------------------------
+// TripV3 — Trip with a non-nullable unique 'tag' column, for constraint testing
+// ---------------------------------------------------------------------------
+
+class TripV3Descriptor extends ModelDescriptor {
+  @override
+  String get tableName => 'trip';
+
+  @override
+  String get modelClassName => 'Trip';
+
+  @override
+  Type get modelType => Trip;
+
+  @override
+  List<ColumnDefinition> get columns => [
+        const ColumnDefinition(
+            columnName: 'id',
+            type: ColumnType.text,
+            isPrimaryKey: true,
+            isNullable: false),
+        const ColumnDefinition(columnName: 'name', type: ColumnType.text),
+        const ColumnDefinition(
+            columnName: 'destination', type: ColumnType.text),
+        const ColumnDefinition(
+            columnName: 'start_date', type: ColumnType.integer),
+        const ColumnDefinition(
+            columnName: 'end_date', type: ColumnType.integer),
+        const ColumnDefinition(
+            columnName: 'tag',
+            type: ColumnType.text,
+            isNullable: false,
+            isUnique: true),
+      ];
+
+  @override
+  List<RelationshipDefinition> get relationships => [];
+
+  @override
+  List<String> get externalFileFields => [];
+
+  @override
+  Trip fromMap(Map<String, Object?> row) => Trip(
+        id: row['id'] as String,
+        name: row['name'] as String,
+        destination: row['destination'] as String,
+        startDate: DateTime.fromMillisecondsSinceEpoch(
+            row['start_date'] as int,
+            isUtc: true),
+        endDate: DateTime.fromMillisecondsSinceEpoch(row['end_date'] as int,
+            isUtc: true),
+      );
+}
+
+// ---------------------------------------------------------------------------
 // Photo model (with ExternalFile)
 // ---------------------------------------------------------------------------
 

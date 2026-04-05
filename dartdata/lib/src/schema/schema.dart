@@ -1,3 +1,7 @@
+import 'dart:convert';
+
+import 'package:crypto/crypto.dart';
+
 import '../annotations/relationship.dart';
 
 /// Holds the set of model types that a [ModelContainer] should persist.
@@ -11,8 +15,36 @@ class Schema {
 
   static final _validIdentifier = RegExp(r'^[a-zA-Z_][a-zA-Z0-9_]*$');
 
+  String? _cachedFingerprint;
+
   Schema(this.descriptors) {
     _validateIdentifiers();
+  }
+
+  /// Returns a deterministic SHA-256 hash of the schema definition.
+  ///
+  /// The fingerprint is computed by sorting all column tuples
+  /// `(tableName, columnName, type, isPK, isUnique, isNullable)` and hashing
+  /// the resulting canonical string. Two schemas with the same tables and
+  /// columns will always produce the same fingerprint.
+  String get fingerprint {
+    if (_cachedFingerprint != null) return _cachedFingerprint!;
+
+    final tuples = <String>[];
+    for (final d in descriptors) {
+      for (final col in d.columns) {
+        tuples.add(
+          '${d.tableName}|${col.columnName}|${col.type.name}'
+          '|${col.isPrimaryKey}|${col.isUnique}|${col.isNullable}',
+        );
+      }
+    }
+    tuples.sort();
+
+    final canonical = tuples.join('\n');
+    _cachedFingerprint =
+        sha256.convert(utf8.encode(canonical)).toString();
+    return _cachedFingerprint!;
   }
 
   void _validateIdentifiers() {
