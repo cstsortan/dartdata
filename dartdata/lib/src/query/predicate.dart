@@ -1,3 +1,5 @@
+import 'sort_descriptor.dart';
+
 /// A composable, type-safe filter for model type [T].
 ///
 /// Predicates are built from [QueryField] operators and combined with

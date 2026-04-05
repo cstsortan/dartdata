@@ -17,10 +17,10 @@ export 'sort_descriptor.dart';
 /// ```
 class Query<T> {
   /// Filter predicate. `null` means fetch all rows.
-  final Predicate<T>? where;
+  final Predicate<dynamic>? where;
 
   /// Ordering. Applied in list order (first element = primary sort).
-  final List<SortDescriptor<T>> orderBy;
+  final List<SortDescriptor<dynamic>> orderBy;
 
   /// Maximum number of results. `null` means no limit.
   final int? limit;

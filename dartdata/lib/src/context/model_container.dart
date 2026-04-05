@@ -151,9 +151,14 @@ class ModelContainer {
   void _createTableIfNeeded(ModelDescriptor descriptor) {
     final columns = descriptor.columns.map((col) {
       final parts = <String>[col.columnName, _sqlType(col.type)];
-      if (col.isPrimaryKey) parts.add('PRIMARY KEY');
-      if (col.isUnique && !col.isPrimaryKey) parts.add('UNIQUE');
-      if (!col.isNullable && !col.isPrimaryKey) parts.add('NOT NULL');
+      // z_pk is the real SQLite primary key; user-declared PKs become UNIQUE NOT NULL.
+      if (col.isPrimaryKey) {
+        parts.add('UNIQUE');
+        parts.add('NOT NULL');
+      } else {
+        if (col.isUnique) parts.add('UNIQUE');
+        if (!col.isNullable) parts.add('NOT NULL');
+      }
       return parts.join(' ');
     }).join(',\n  ');
 
