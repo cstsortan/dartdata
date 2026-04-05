@@ -422,6 +422,100 @@ void main() {
       nestedContainer.close();
     });
 
+    test('delete succeeds when relationship target was already deleted (noAction)',
+        () async {
+      // Bug: _resolveRelationshipFks is called for delete operations,
+      // causing StateError when the related parent row no longer exists.
+      // Delete only needs map['id'], FK resolution is unnecessary.
+      final noActionContainer = await ModelContainer.create(
+        schema: Schema([
+          TripDescriptor(),
+          NoActionBucketListItemDescriptor(),
+        ]),
+        configuration: const ModelConfiguration.inMemory(),
+      );
+      final ctx = ModelContext(noActionContainer);
+
+      final trip = Trip(
+        id: 'trip-del-orphan',
+        name: 'Delete Orphan Trip',
+        destination: 'X',
+        startDate: DateTime.utc(2026, 1, 1),
+        endDate: DateTime.utc(2026, 1, 2),
+      );
+      ctx.insert(trip);
+      await ctx.save();
+
+      final item = BucketListItem(
+        id: 'bli-del-orphan',
+        title: 'Orphan',
+        trip: trip,
+      );
+      ctx.insert(item);
+      await ctx.save();
+
+      // Delete parent first (noAction leaves orphan).
+      ctx.delete(trip);
+      await ctx.save();
+
+      // Now delete the orphan child whose trip reference points to
+      // a row that no longer exists. This should NOT throw.
+      ctx.delete(item);
+      await ctx.save();
+
+      final items = await ctx.fetch(Query<BucketListItem>());
+      expect(items, isEmpty);
+
+      noActionContainer.close();
+    });
+
+    test('fetch-modify-save preserves FK when relationship field is not hydrated',
+        () async {
+      // Bug: fromMap() does not populate relationship fields, so fetched
+      // objects have trip == null. Re-saving writes null into the FK column,
+      // silently destroying the relationship.
+      final trip = Trip(
+        id: 'trip-roundtrip',
+        name: 'Roundtrip Trip',
+        destination: 'R',
+        startDate: DateTime.utc(2026, 1, 1),
+        endDate: DateTime.utc(2026, 1, 2),
+      );
+      context.insert(trip);
+      await context.save();
+
+      final item = BucketListItem(
+        id: 'bli-roundtrip',
+        title: 'Original Title',
+        trip: trip,
+      );
+      context.insert(item);
+      await context.save();
+
+      // Verify FK is set initially.
+      var rows = container.db.select(
+        "SELECT trip_id FROM bucket_list_item WHERE id = 'bli-roundtrip'",
+      );
+      expect(rows.first['trip_id'], isA<int>());
+      expect(rows.first['trip_id'], equals(1));
+
+      // Fetch the item (fromMap does not hydrate trip field).
+      final fetched = await context.fetchOne<BucketListItem>(id: 'bli-roundtrip');
+      expect(fetched, isNotNull);
+
+      // Modify an unrelated field and re-save.
+      fetched!.title = 'Updated Title';
+      context.insert(fetched); // upsert
+      await context.save();
+
+      // FK must still be intact — not nullified.
+      rows = container.db.select(
+        "SELECT trip_id FROM bucket_list_item WHERE id = 'bli-roundtrip'",
+      );
+      expect(rows.first['trip_id'], isA<int>());
+      expect(rows.first['trip_id'], equals(1));
+    });
+
     test('deleting a model with no relationships proceeds normally', () async {
       // Photo has no relationships — just a plain model.
       final photoContainer = await ModelContainer.create(

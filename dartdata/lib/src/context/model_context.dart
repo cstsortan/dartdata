@@ -122,7 +122,10 @@ class ModelContext {
     }
 
     // Resolve FK UUIDs → z_pk integers for relationship columns.
-    _resolveRelationshipFks(op.model, descriptor, map);
+    // Skip for deletes — DELETE only needs map['id'], not FK values.
+    if (op.type != _OperationType.delete) {
+      _resolveRelationshipFks(op.model, descriptor, map);
+    }
 
     switch (op.type) {
       case _OperationType.insert:
@@ -368,6 +371,20 @@ class ModelContext {
       final relatedUuid = entry.value;
 
       if (relatedUuid == null) {
+        // Preserve existing FK from the database if the relationship field
+        // was never hydrated (e.g., after fromMap). Only write null if this
+        // is a fresh insert (no existing row).
+        final id = map['id'] as String?;
+        if (id != null) {
+          final existing = container.db.select(
+            'SELECT $fkColumn FROM ${descriptor.tableName} WHERE id = ?',
+            [id],
+          );
+          if (existing.isNotEmpty) {
+            map[fkColumn] = existing.first[fkColumn];
+            continue;
+          }
+        }
         map[fkColumn] = null;
         continue;
       }
