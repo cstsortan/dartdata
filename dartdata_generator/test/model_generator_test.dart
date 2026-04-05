@@ -423,6 +423,92 @@ void main() {
       expect(output, contains('deleteRule: DeleteRule.cascade'));
     });
   });
+
+  // -------------------------------------------------------------------------
+  // Phase 5: Relationship Emission — To-Many
+  // -------------------------------------------------------------------------
+
+  group('Phase 5: to-many relationship emission', () {
+    test('5.1: List<T> field does NOT add column to parent, emits toMany RelationshipDefinition',
+        () async {
+      final cls = await _resolveClass(
+        '''
+        import 'package:dartdata/src/annotations/model.dart';
+        import 'package:dartdata/src/annotations/relationship.dart';
+
+        @model
+        class BucketListItem {
+          final String id;
+          String title;
+          BucketListItem({required this.id, required this.title});
+        }
+
+        @model
+        class Trip {
+          @attribute(primaryKey: true)
+          final String id;
+          String name;
+
+          @relationship(deleteRule: DeleteRule.cascade, inverse: 'trip')
+          List<BucketListItem> bucketList;
+
+          Trip({required this.id, required this.name, required this.bucketList});
+        }
+        ''',
+        'Trip',
+      );
+
+      final output = _generate(cls);
+
+      // Should NOT add a bucket_list or bucket_list_id column to Trip
+      expect(output, isNot(contains("columnName: 'bucket_list'")));
+      expect(output, isNot(contains("columnName: 'bucket_list_id'")));
+
+      // Should emit a toMany RelationshipDefinition
+      expect(output, contains("fieldName: 'bucketList'"));
+      expect(output, contains("relatedTable: 'bucket_list_item'"));
+      expect(output, contains('cardinality: RelationshipCardinality.toMany'));
+
+      // toMany side should NOT have isForeignKeySide
+      expect(output, isNot(contains('isForeignKeySide: true')));
+    });
+
+    test('5.3: inverse field name is wired into RelationshipDefinition',
+        () async {
+      final cls = await _resolveClass(
+        '''
+        import 'package:dartdata/src/annotations/model.dart';
+        import 'package:dartdata/src/annotations/relationship.dart';
+
+        @model
+        class Trip {
+          final String id;
+          String name;
+          Trip({required this.id, required this.name});
+        }
+
+        @model
+        class BucketListItem {
+          @attribute(primaryKey: true)
+          final String id;
+          String title;
+
+          @relationship(inverse: 'bucketList')
+          Trip? trip;
+
+          BucketListItem({required this.id, required this.title, this.trip});
+        }
+        ''',
+        'BucketListItem',
+      );
+
+      final output = _generate(cls);
+
+      expect(output, contains("inverseFieldName: 'bucketList'"));
+      expect(output, contains("fieldName: 'trip'"));
+      expect(output, contains('isForeignKeySide: true'));
+    });
+  });
 }
 
 /// Minimal [BuildStep] implementation for testing. The generator does not
