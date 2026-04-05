@@ -50,14 +50,14 @@ class _PostTagDescriptor extends ModelDescriptor {
             isNullable: true),
         ColumnDefinition(
             columnName: 'post_id',
-            type: ColumnType.integer,
+            type: ColumnType.text,
             isPrimaryKey: false,
             isUnique: false,
             isIndexed: false,
             isNullable: true),
         ColumnDefinition(
             columnName: 'tag_id',
-            type: ColumnType.integer,
+            type: ColumnType.text,
             isPrimaryKey: false,
             isUnique: false,
             isIndexed: false,

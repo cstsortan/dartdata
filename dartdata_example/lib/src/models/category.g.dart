@@ -49,7 +49,7 @@ class _CategoryDescriptor extends ModelDescriptor {
             isNullable: false),
         ColumnDefinition(
             columnName: 'post_id',
-            type: ColumnType.integer,
+            type: ColumnType.text,
             isPrimaryKey: false,
             isUnique: false,
             isIndexed: false,

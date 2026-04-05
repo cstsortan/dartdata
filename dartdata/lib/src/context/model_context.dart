@@ -201,7 +201,8 @@ class ModelContext {
     );
 
     return rows.map((row) {
-      final obj = descriptor.fromMap(row) as T;
+      final resolved = _resolveExternalFilePaths(row, descriptor);
+      final obj = descriptor.fromMap(resolved) as T;
       final id = row['id'] as String;
       final zOpt = row['z_opt'] as int;
       _versions['${descriptor.tableName}:$id'] = zOpt;
@@ -231,7 +232,8 @@ class ModelContext {
     final row = rows.first;
     final zOpt = row['z_opt'] as int;
     _versions['${descriptor.tableName}:$id'] = zOpt;
-    return descriptor.fromMap(row) as T;
+    final resolved = _resolveExternalFilePaths(row, descriptor);
+    return descriptor.fromMap(resolved) as T;
   }
 
   /// Fetch related objects through a declared relationship.
@@ -270,7 +272,10 @@ class ModelContext {
       [parentId],
     );
 
-    return rows.map((row) => childDescriptor.fromMap(row) as T).toList();
+    return rows.map((row) {
+      final resolved = _resolveExternalFilePaths(row, childDescriptor);
+      return childDescriptor.fromMap(resolved) as T;
+    }).toList();
   }
 
   /// Count objects matching [query] without fetching them.
@@ -375,6 +380,25 @@ class ModelContext {
     }
   }
 
+  /// Resolve ExternalFile UUID columns in [row] to full blob directory paths
+  /// before passing to `fromMap`. The database stores just the UUID filename;
+  /// `fromManagedPath` needs the full filesystem path.
+  Map<String, Object?> _resolveExternalFilePaths(
+    Map<String, Object?> row,
+    ModelDescriptor descriptor,
+  ) {
+    if (descriptor.externalFileFields.isEmpty) return row;
+    final resolved = Map<String, Object?>.of(row);
+    for (final fieldName in descriptor.externalFileFields) {
+      final uuid = resolved[fieldName];
+      if (uuid is String) {
+        resolved[fieldName] =
+            '${container.blobDirectory.path}/$uuid';
+      }
+    }
+    return resolved;
+  }
+
   static final _safePathSegment = RegExp(r'^[a-zA-Z0-9_\-]+$');
 
   File _blobFile(String modelId, String fieldName) {
@@ -451,7 +475,8 @@ class ModelContext {
     );
 
     for (final row in rows) {
-      final childModel = childDescriptor.fromMap(row);
+      final resolved = _resolveExternalFilePaths(row, childDescriptor);
+      final childModel = childDescriptor.fromMap(resolved);
       _pending.add(_PendingOperation(_OperationType.delete, childModel));
     }
   }

@@ -57,7 +57,7 @@ class _AttachmentDescriptor extends ModelDescriptor {
             isNullable: true),
         ColumnDefinition(
             columnName: 'post_id',
-            type: ColumnType.integer,
+            type: ColumnType.text,
             isPrimaryKey: false,
             isUnique: false,
             isIndexed: false,

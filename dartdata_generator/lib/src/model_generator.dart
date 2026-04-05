@@ -386,7 +386,7 @@ class _RelationshipInfo {
 
   /// Generates a `ColumnDefinition(...)` string for the FK column.
   String get fkColumnDefinition {
-    return "ColumnDefinition(columnName: '$fkColumnName', type: ColumnType.integer, "
+    return "ColumnDefinition(columnName: '$fkColumnName', type: ColumnType.text, "
         "isPrimaryKey: false, isUnique: false, isIndexed: false, "
         "isNullable: $isNullable)";
   }
